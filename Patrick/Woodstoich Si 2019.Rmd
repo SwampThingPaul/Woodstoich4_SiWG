@@ -1,0 +1,255 @@
+---
+title: "Woodstoich Si 2019"
+output: html_document
+---
+
+```{r, echo=FALSE, include=FALSE}
+library(readr)
+library(ggplot2)
+library(MASS)
+library(car)
+library(dplyr)
+library(magrittr)
+nla2012_waterchem_wide <- read_csv("C:/Users/pkthomas88/Box Sync/1. Woodstoich/nla2012_waterchem_wide.csv")
+
+#removing zeros for microcystin:
+nla2012_waterchem_wide_nozeros<-subset(nla2012_waterchem_wide, MICX_RESULT>0)
+
+```
+
+
+##*NOTE: I ran out of time to make the axes all pretty, but NTL_RESULT means total dissolved N concentration, PTL_RESULT means total dissolved P, etc and MICX_RESULT means concentration of microcystin somewhere in the lake. Also all of these stats were rushed through with no regard to statistical assumptions so should be taken with a grain of salt and just represent some quick exploratory stuff*
+
+#PART 1 - Si stoichiometry and microcystin
+
+## Distributions for silica, microcystin - both vary over several orders of magnitude, ~300 zeros removed for microcystin
+```{r, echo=FALSE}
+
+#summary(nla2012_waterchem_wide)
+
+#log-transformed histogram with all Si data, shows that there is variation over a few orders of magnitude
+ggplot(data=nla2012_waterchem_wide, aes(log(SILICA_RESULT)))+
+  geom_histogram(binwidth = 1)
+
+
+#histogram excluding values over 100
+#shorter<-subset(nla2012_waterchem_wide, SILICA_RESULT<100)
+#ggplot(data=shorter, aes(SILICA_RESULT))+
+  #geom_histogram(binwidth = 1)
+
+#ggplot(data=nla2012_waterchem_wide, aes(MICX_RESULT))+
+ # geom_histogram(binwidth = 1)
+
+ggplot(data=nla2012_waterchem_wide, aes(log(MICX_RESULT)))+
+  geom_histogram(binwidth = 1)
+
+#MICL and MICX have similar values
+#ggplot(data=nla2012_waterchem_wide, mapping=aes(x=MICX_RESULT, y=MICL_RESULT))+
+ # geom_smooth(method="lm")+geom_point()
+```
+
+
+##Si:P vs microcystin
+```{r}
+
+x<-ggplot(data=nla2012_waterchem_wide_nozeros, mapping=aes(x=log(SILICA_RESULT/PTL_RESULT), y=log(MICX_RESULT)))
+x+geom_point()+geom_smooth(method="lm")+xlab("log(dissolved Si:P ratio)")+ylab("log(Microcystin concentration)")+theme_classic()
+
+fit<-lm(data=nla2012_waterchem_wide_nozeros, log(MICX_RESULT)~log((SILICA_RESULT/PTL_RESULT)))
+summary(fit)
+
+
+
+```
+
+
+##Si:N vs. microcystin
+```{r}
+
+x<-ggplot(data=nla2012_waterchem_wide_nozeros, mapping=aes(x=log(SILICA_RESULT/NTL_RESULT), y=log(MICX_RESULT)))
+x+geom_point()+geom_smooth(method="lm")+xlab("log(dissolved Si:N ratio)")+ylab("log(Microcystin concentration)")+theme_classic()
+
+fit<-lm(data=nla2012_waterchem_wide_nozeros, log(MICX_RESULT)~log((SILICA_RESULT/NTL_RESULT)))
+summary(fit)
+```
+
+
+##Si:N and Si:P both explain microcystin in complementary ways accoriding to partial regression plots. Also both Si:N and Si:P are retained in the model
+
+```{r}
+fit<-lm(data=nla2012_waterchem_wide_nozeros, log(MICX_RESULT)~log(SILICA_RESULT/NTL_RESULT)+log((SILICA_RESULT/PTL_RESULT)))
+summary(fit)
+stepAIC(fit)
+avPlots(fit)
+
+```
+
+## Same as above but just Si N P concentrations instead of ratios. This suggests that only N concentrations have an effect
+
+```{r}
+fit<-lm(data=nla2012_waterchem_wide_nozeros, log(MICX_RESULT)~log(SILICA_RESULT)+log(PTL_RESULT)+log(NTL_RESULT))
+summary(fit)
+
+stepAIC(fit)
+avPlots(fit)
+
+```
+
+##N:P ratio doesn't explain much
+
+```{r}
+x<-ggplot(data=nla2012_waterchem_wide_nozeros, mapping=aes(x=log(NTL_RESULT/PTL_RESULT), y=log(MICX_RESULT)))
+x+geom_point()+geom_smooth(method="lm")
+
+
+#fit<-lm(data=nla2012_waterchem_wide, log(MICX_RESULT)~log((NTL_RESULT/PTL_RESULT)))
+#summary(fit)
+```
+
+
+
+##trying to throw Si:N, Si:P, and N:P in one model totally fails, probably for obvious reasons that I haven't figured out yet
+```{r}
+fit<-lm(data=nla2012_waterchem_wide_nozeros, log(MICX_RESULT)~log(NTL_RESULT/PTL_RESULT)+log(SILICA_RESULT/PTL_RESULT)+log(SILICA_RESULT/NTL_RESULT))
+summary(fit)
+stepAIC(fit)
+avPlots(fit)
+```
+
+
+#PART 2 - Si:N, Si:P, N:P and community composition
+```{r}
+nla2012_wide_phytoplankton_count_02122014 <- read_csv("C:/Users/pkthomas88/Box Sync/1. Woodstoich/nla2012_wide_phytoplankton_count_02122014.csv")
+
+nla2012_chem_phyto_joined<-full_join(nla2012_wide_phytoplankton_count_02122014, nla2012_waterchem_wide_nozeros, by="UID")
+
+
+cyanos<-subset(nla2012_chem_phyto_joined, ALGAL_GROUP=="BLUE-GREEN ALGAE")
+diatoms<-subset(nla2012_chem_phyto_joined, ALGAL_GROUP=="DIATOM")
+
+```
+
+
+
+```{R, include=FALSE, echo=FALSE}
+
+#Si stoich vs cyanobacteria total abundance
+group_by(cyanos, UID) %>% summarize(cyanototabundance=sum(ABUNDANCE)) -> poop
+nla2012_cyanos<-full_join(nla2012_waterchem_wide_nozeros,poop, by="UID")
+
+ggplot(data=nla2012_cyanos, mapping = aes(x=log(SILICA_RESULT/PTL_RESULT), y=log(cyanototabundance)))+
+  geom_point()+geom_smooth(method = "lm")
+
+ggplot(data=nla2012_cyanos, mapping = aes(x=log(SILICA_RESULT/NTL_RESULT), y=log(cyanototabundance)))+
+  geom_point()+geom_smooth(method = "lm")
+
+ggplot(data=nla2012_cyanos, mapping = aes(x=log(NTL_RESULT/PTL_RESULT), y=log(cyanototabundance)))+
+  geom_point()+geom_smooth(method = "lm")
+```
+
+
+##Si stoich vs cyanobacteria total biovolume
+```{R}
+
+group_by(cyanos, UID) %>% summarize(cyanototbiovolume=sum(BIOVOLUME)) -> poop
+nla2012_cyanos<-full_join(nla2012_waterchem_wide_nozeros,poop, by="UID")
+
+ggplot(data=nla2012_cyanos, mapping = aes(x=log(SILICA_RESULT/PTL_RESULT), y=log(cyanototbiovolume)))+
+  geom_point()+geom_smooth(method = "lm")
+fit<-lm(data=nla2012_cyanos, log(cyanototbiovolume)~log(SILICA_RESULT/PTL_RESULT))
+summary(fit)
+
+ggplot(data=nla2012_cyanos, mapping = aes(x=log(SILICA_RESULT/NTL_RESULT), y=log(cyanototbiovolume)))+
+  geom_point()+geom_smooth(method = "lm")
+fit<-lm(data=nla2012_cyanos, log(cyanototbiovolume)~log(SILICA_RESULT/NTL_RESULT))
+summary(fit)
+
+ggplot(data=nla2012_cyanos, mapping = aes(x=log(NTL_RESULT/PTL_RESULT), y=log(cyanototbiovolume)))+
+  geom_point()+geom_smooth(method = "lm")
+fit<-lm(data=nla2012_cyanos, log(cyanototbiovolume)~log(NTL_RESULT/PTL_RESULT))
+summary(fit)
+
+
+```
+
+##Unlike the above microcystin data, only Si:P has an effect on cyanobacteria biovolume when it's put in a model with Si:N. hmm. 
+
+```{R}
+
+fit<-lm(data=nla2012_cyanos, log(cyanototbiovolume)~ log(SILICA_RESULT/PTL_RESULT)+ log(SILICA_RESULT/NTL_RESULT))
+summary(fit)
+avPlots(fit)
+
+```
+
+##Si stoich vs diatom total biovolume
+
+```{r}
+
+group_by(diatoms, UID) %>% summarize(diatomtotbiovolume=sum(BIOVOLUME)) -> poop
+nla2012_diatoms<-full_join(nla2012_cyanos,poop, by="UID")
+
+ggplot(data=nla2012_diatoms, mapping = aes(x=log(SILICA_RESULT/PTL_RESULT), y=log(diatomtotbiovolume)))+
+  geom_point()+geom_smooth(method = "lm")
+fit<-lm(data=nla2012_diatoms, log(diatomtotbiovolume)~log(SILICA_RESULT/PTL_RESULT))
+summary(fit)
+
+
+ggplot(data=nla2012_diatoms, mapping = aes(x=log(SILICA_RESULT/NTL_RESULT), y=log(diatomtotbiovolume)))+
+  geom_point()+geom_smooth(method = "lm")
+fit<-lm(data=nla2012_diatoms, log(diatomtotbiovolume)~log(SILICA_RESULT/NTL_RESULT))
+summary(fit)
+
+
+ggplot(data=nla2012_diatoms, mapping = aes(x=log(NTL_RESULT/PTL_RESULT), y=log(diatomtotbiovolume)))+
+  geom_point()+geom_smooth(method = "lm")
+fit<-lm(data=nla2012_diatoms, log(diatomtotbiovolume)~log(NTL_RESULT/PTL_RESULT))
+summary(fit)
+
+#mutate(nla2012_diatoms, dia.cyano=diatomtotbiovolume/cyanototbiovolume)
+
+```
+
+
+##Effects of Si:P etc on ratio of diatoms:cyanobacteria. Not sure what to make of this, but I guess high Si:N and high Si:P both explain the community ratio, however when you put them both in a model only Si:N has an effect. Also total Si concentration has a weaker effect than the ratios
+
+```{R}
+
+ggplot(data=nla2012_diatoms, mapping = aes(x=log(SILICA_RESULT/PTL_RESULT), y=log(diatomtotbiovolume/cyanototbiovolume)))+
+  geom_point()+geom_smooth(method = "lm")+
+  xlab("log(dissolved Si:P ratio)")+
+  ylab("log(Diatom:Cyano biovolume ratio)")
+
+fit<-lm(data=nla2012_diatoms, log(diatomtotbiovolume/cyanototbiovolume)~log(SILICA_RESULT/PTL_RESULT))
+summary(fit)
+
+ggplot(data=nla2012_diatoms, mapping = aes(x=log(SILICA_RESULT/NTL_RESULT), y=log(diatomtotbiovolume/cyanototbiovolume)))+
+  geom_point()+geom_smooth(method = "lm")+
+  xlab("log(dissolved Si:N ratio)")+
+  ylab("log(Diatom:Cyano biovolume ratio)")
+
+fit<-lm(data=nla2012_diatoms, log(diatomtotbiovolume/cyanototbiovolume)~log(SILICA_RESULT/PTL_RESULT)+log(SILICA_RESULT/NTL_RESULT))
+summary(fit)
+avPlots(fit)
+
+ggplot(data=nla2012_diatoms, mapping = aes(x=log(SILICA_RESULT), y=log(diatomtotbiovolume/cyanototbiovolume)))+
+  geom_point()+geom_smooth(method = "lm")
+
+fit<-lm(data=nla2012_diatoms, log(diatomtotbiovolume/cyanototbiovolume)~log(SILICA_RESULT))
+summary(fit)
+```
+
+
+#PART 3 - Effects of Si:P on zooplankton production
+
+##Worth checking if dissolved Si:P and Si:N have any effects on trophic transfer to zooplankton? Si should make for harder to eat diatom prey, P is often limiting for zooplankton, so maybe that combo would make for stronger effects?
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
