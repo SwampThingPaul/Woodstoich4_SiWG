@@ -1,0 +1,1174 @@
+---
+title: "NLA2007 Stoichiometry Assessment Si Working Group"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+*This page is best view in Google Chrome, Firefox or Edge.*
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Libraries
+library(kableExtra)
+library(AnalystHelper);#devtools::install_github("SwampThingPaul/AnalystHelper")
+library(plyr)
+library(reshape)
+library(zoo)
+library(smatr)
+
+library(tmap)
+library(rgdal)
+
+#Paths
+wd="D:/UF/WoodStoich19/Si_WG"
+paths=paste0(getwd(),c("/Exports/","/Plots/","/Data/NARS/NLA2007/","/Data/NARS/GIS_NLA"))
+
+export.path=paths[1]
+plot.path=paths[2]
+data.path=paths[3]
+GIS.path=paths[4]
+
+##Helper functions
+N.mw=14.0067
+P.mw=30.973762
+C.mw=12.0107
+Si.mw=28.0855
+
+#https://www.epa.gov/national-aquatic-resource-surveys/data-national-aquatic-resource-surveys
+## GIS data
+tmap_mode("view")
+NLA.basins=readOGR(GIS.path,"National_Basin_withMetrics_20120920")
+#eco=readOGR(GIS.path,"NA_CEC_Eco_Level2")
+samples2007=read.csv(paste0(data.path,"NLA2007_SampledLakeInformation_20091113.csv"))
+nla2007.sites=SpatialPointsDataFrame(coords=samples2007[,c("LON_DD","LAT_DD")],dat=samples2007,proj4string = crs(NLA.basins))
+#samples2012=read.csv("https://www.epa.gov/sites/production/files/2016-12/nla2012_wide_siteinfo_08232016.csv")
+#nla2012.sites=SpatialPointsDataFrame(coords=samples2012[,c("LON_DD83","LAT_DD83")],dat=samples2012,proj4string = crs(NLA.basins))
+
+samples2007=samples2007[,c("SITE_ID","WSA_ECO9")]
+colnames(samples2007)=c("SITE_ID","ECO9")
+
+WSA_regions=data.frame(ECO9=c("CPL","NAP", "NPL", "SAP", "SPL", "TPL", "UMW", "WMT", "XER"),
+           Eco_Name_full=c("Coastal Plains","Northern Appalachians","Northern Plains",
+                       "Southern Appalachians","Southern Plains","Temperate Plains",
+                       "Upper Midwest","Western Mountains","Xeric"))
+
+nla2007.sites=merge(nla2007.sites,WSA_regions,by.x="WSA_ECO9",by.y="ECO9")
+
+## Water Quality
+NLA2007=read.csv(paste0(data.path,"NLA2007_WaterQuality_20091123.csv"))
+NLA2007$DATE_COL=date.fun(NLA2007$DATE_COL,form="%m/%d/%Y")
+names(NLA2007)
+
+vars=c("SITE_ID","DATE_COL","LAKE_SAMP","VISIT_NO","SAMPLE_DEPTH","TOC","DOC","NTL_PPM","PTL","SIO2","CHLA")
+NLA2007=NLA2007[,vars]
+
+NLA2007=merge(NLA2007,samples2007,"SITE_ID",all.x=T)
+
+NLA2007[NLA2007$PTL==0,]=NA
+
+NLA2007$TOC.mM=NLA2007$TOC/C.mw
+NLA2007$DOC.mM=NLA2007$DOC/C.mw
+NLA2007$TN.mM=NLA2007$NTL_PPM/N.mw
+NLA2007$TP.mM=(NLA2007$PTL*0.001)/P.mw
+NLA2007$Si.mM=NLA2007$SIO2/Si.mw
+
+NLA2007$log.TOC.mM=log(NLA2007$TOC.mM)
+NLA2007$log.DOC.mM=log(NLA2007$DOC.mM)
+NLA2007$log.TN.mM=log(NLA2007$TN.mM)
+NLA2007$log.TP.mM=log(NLA2007$TP.mM)
+NLA2007$log.Si.mM=log(NLA2007$Si.mM)
+
+```
+
+## Methods
+
+National aquatic resource survey data for the 2007 National Lake Assessment (NLA) was retrieved from USEPA. Water quality parameters including dissolved organic carbon, total phosphorus, total nitrogen and silica (SiO~2~) were used to evaluate stoichiometric relationships across the nine wadable stream assessment ecoregion (Fig 1; Herlihy et al., 2008). Values reported as zero were excluded from analysis, values reported less than the minimum detection limit were set to the historic average minimum detection limit (USEPA, 2009). 
+
+```{r, out.width="50%",fig.align="center",echo=FALSE,fig.cap="Figure 1. Ecoregions used in the National Aquatic Resource Surveys [link](https://www.epa.gov/national-aquatic-resource-surveys/ecoregions-used-national-aquatic-resource-surveys)"}
+knitr::include_graphics("ecoregions_withlegend_7_27_2016_cropped2.jpg")
+```
+
+Prior to analysis surface water nutrient concentrations were converted from mass of nutrient per volume concentration (i.e. mg L^-1^) to molar concentrations (i.e. mM).  Nutrient stoichiometric relationships within each ecoregion were examined by evaluating power law slopes using standardized major axis (SMA) regression (’smatr’ package; Warton et al. 2006) consistent with Cleveland and Liptzin (2007). Unlike standard regression techniques which are used to predict one variable from another, SMA regression assesses the best fit line between two variables. Molar nutrient concentrations were log-transformed and slope of the SMA regression was evaluated against the null hypothesis that the slope was not different from one ($\beta \neq1$). Power law ($y=kx^{\beta}$)  and its linearized form ($log(y) = \beta log(x) + log(k)$) are used to evaluate the degree of proportional scaling between two variables. Scaling relationships and power-law distributions are key to understanding fundamental ecological relationships and processes in the natural system such as energy acquisition and transformation, biomass-growth relationships and evaluation of watershed chemostasis (Brown et al., 2002; Marquet et al., 2005; Wymore et al., 2017). In this analysis, we tested if the slope of the SMA regression results were statistically significantly different from one (i.e. $\rho$ < 0.05) and interpreted as the variables are independent and do not proportionally scale (i.e. allometric growth) where one nutrient can either be enriched or depleted relative to the other (Fig 2).  If the slope was not statistically different from one (i.e. $\rho$ > 0.05), then the variables exhibited proportional changes (i.e. isometric growth; Fig 2) resulting in a constrained stoichiometry between nutrients. A slope not different from one would indicate that for any given concentration of nutrient X (i.e. C, N, or P) a proportional concentration of nutrient Y (i.e. P, C or N) existed. The degree of scaling (i.e. slope test) was combined with an evaluation of the regression coefficient of determination (R^2^) which indicated the degree of predictability (i.e. one nutrient can be used to predict the other). Low R^2^ values reflected high stoichiometric variability suggesting a decoupling of nutrients while high R^2^ values reflected low stoichiometric variability indicating a degree of coupling between nutrients. For our purposes, decoupled stoichiometric relationships were defined as a relationship with an R^2^ less than 0.25, R^2^ greater than 0.25 suggested some degree of coupling. 
+
+All statistical operations were performed with R (Ver 3.1.2, R Foundation for Statistical Computing, Vienna Austria), unless otherwise stated all statistical operations were performed using the base R library. The critical level of significance was set at $\alpha$ = 0.05. Unless otherwise stated, mean values were reported with together with standard errors (i.e. mean $\pm$ standard error).
+
+
+```{r conceptFig,echo=F,fig.width=4,fig.height=3,fig.align='center',fig.cap="Figure 2. Conceptual model for power law slope (\u03B2) interpretation relative to log transformed nutrient concentrations and relationship to stoichiometric ratios (i.e. X:Y)"}
+par(family="serif",mar=c(2,1,0.5,0.5),oma=c(1,1.5,1,0.25),mgp=c(3,1,0));
+plot(c(0.1,1.2),c(0.1,1.2),ylim=c(0,1.8),xlim=c(0,1.8),type="n",yaxt="n",xaxt="n",ylab=NA,xlab=NA)
+lines(c(0.1,1.3),c(0.1,1.3),lwd=2)
+text(1.35,1.3,"Isometric\n\u03B2 = 1",adj=0,font=3)
+lines(c(0.1,1.1),c(0.1,1.2)*1.4,lwd=2,lty=2)
+text(1.1,1.2*1.4,"Enrichment\n\u03B2 > 1",adj=0,font=3)
+lines(c(0.1,1.4),c(0.1,1.2)*0.6,lwd=2,lty=2)
+text(1.4,1.2*0.6,"Depletion\n\u03B2 < 1",adj=0,font=3)
+text(1,0.15,"Higher X:Y ratios",font=2,cex=0.75)
+text(1,0.04,"Increasing Y limitation",font=3,cex=0.75)
+text(0.35,1.6,"Lower X:Y ratios",font=2,cex=0.75)
+text(0.35,1.49,"Increasing X limitation",font=3,cex=0.75)
+mtext(side=1,line=1,"log[X]")
+mtext(side=2,line=1,"log[Y]")
+```
+
+<br>
+<br>
+
+```{r Map,echo=FALSE,message=FALSE,out.width="100%"}
+tm_basemap(leaflet::providers$Esri.WorldImagery,alpha=0.9)+
+  tm_shape(nla2007.sites)+tm_dots(col="indianred1")
+
+```
+
+<center> Figure 3. Interactive map of monitoring locations sampled during the 2007 National Aquatic Resource Surveys National Lake Assessment [link to data](https://www.epa.gov/national-aquatic-resource-surveys/data-national-aquatic-resource-surveys). </center>
+
+<br>
+<br>
+
+# {.tabset .tabset-fade}
+## `r paste(WSA_regions$Eco_Name_full[1])`
+
+```{r ,echo=FALSE,fig.width=6,fig.height=5,fig.align='center' }
+sma.rslt=data.frame()
+i=1
+tmp=subset(NLA2007,ECO9==WSA_regions$ECO9[i])
+par(family="serif",oma=c(2.5,3,1,0.25),mar=c(1.5,2,0.5,1.25))
+layout(matrix(1:9,3,3,byrow=T))
+y.lab.line=3.5
+
+ylim.val=range(tmp$DOC.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(DOC.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,DOC.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.DOC.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x DOC",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+mtext(side=3,WSA_regions$Eco_Name_full[i])
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TN (mM)")
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TN (mM)")
+#mtext(side=1,line=2,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,formatC(ymaj,format="fg"));axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"Si (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"DOC (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$TN.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~TN.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(TN.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.TN.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="TN x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"TN (mM)")
+
+
+sma.rslt$Pval=ifelse(sma.rslt$Pval<0.01,"<0.01",round(sma.rslt$Pval,2))
+sma.rslt$R2=round(sma.rslt$R2,3)
+
+```
+
+
+```{r,echo=F}
+kable(sma.rslt,col.names = c("Ecoregion","Comparison (x by Y)","R\u00B2","SMA Slope","\u03C1-value"))%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)%>%
+  collapse_rows(columns=1,valign="top")
+
+```
+
+## `r paste(WSA_regions$Eco_Name_full[2])`
+
+```{r ,echo=FALSE,fig.width=6,fig.height=5,fig.align='center' }
+sma.rslt=data.frame()
+i=2
+tmp=subset(NLA2007,ECO9==WSA_regions$ECO9[i])
+par(family="serif",oma=c(2.5,3,1,0.25),mar=c(1.5,2,0.5,1.25))
+layout(matrix(1:9,3,3,byrow=T))
+y.lab.line=3.5
+
+ylim.val=range(tmp$DOC.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(DOC.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,DOC.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.DOC.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x DOC",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+mtext(side=3,WSA_regions$Eco_Name_full[i])
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TN (mM)")
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TN (mM)")
+#mtext(side=1,line=2,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,formatC(ymaj,format="fg"));axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"Si (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"DOC (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$TN.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~TN.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(TN.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.TN.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="TN x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"TN (mM)")
+
+
+sma.rslt$Pval=ifelse(sma.rslt$Pval<0.01,"<0.01",round(sma.rslt$Pval,2))
+sma.rslt$R2=round(sma.rslt$R2,3)
+
+```
+
+
+```{r,echo=F}
+kable(sma.rslt,col.names = c("Ecoregion","Comparison (x by Y)","R\u00B2","SMA Slope","\u03C1-value"))%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)%>%
+  collapse_rows(columns=1,valign="top")
+
+```
+
+## `r paste(WSA_regions$Eco_Name_full[3])`
+
+```{r ,echo=FALSE,fig.width=6,fig.height=5,fig.align='center' }
+sma.rslt=data.frame()
+i=3
+tmp=subset(NLA2007,ECO9==WSA_regions$ECO9[i])
+par(family="serif",oma=c(2.5,3,1,0.25),mar=c(1.5,2,0.5,1.25))
+layout(matrix(1:9,3,3,byrow=T))
+y.lab.line=3.5
+
+ylim.val=range(tmp$DOC.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(DOC.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,DOC.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.DOC.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x DOC",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+mtext(side=3,WSA_regions$Eco_Name_full[i])
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TN (mM)")
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TN (mM)")
+#mtext(side=1,line=2,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,formatC(ymaj,format="fg"));axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"Si (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"DOC (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$TN.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~TN.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(TN.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.TN.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="TN x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"TN (mM)")
+
+
+sma.rslt$Pval=ifelse(sma.rslt$Pval<0.01,"<0.01",round(sma.rslt$Pval,2))
+sma.rslt$R2=round(sma.rslt$R2,3)
+
+```
+
+
+```{r,echo=F}
+kable(sma.rslt,col.names = c("Ecoregion","Comparison (x by Y)","R\u00B2","SMA Slope","\u03C1-value"))%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)%>%
+  collapse_rows(columns=1,valign="top")
+
+```
+
+## `r paste(WSA_regions$Eco_Name_full[4])`
+
+```{r ,echo=FALSE,fig.width=6,fig.height=5,fig.align='center' }
+sma.rslt=data.frame()
+i=4
+tmp=subset(NLA2007,ECO9==WSA_regions$ECO9[i])
+par(family="serif",oma=c(2.5,3,1,0.25),mar=c(1.5,2,0.5,1.25))
+layout(matrix(1:9,3,3,byrow=T))
+y.lab.line=3.5
+
+ylim.val=range(tmp$DOC.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(DOC.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,DOC.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.DOC.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x DOC",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+mtext(side=3,WSA_regions$Eco_Name_full[i])
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TN (mM)")
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TN (mM)")
+#mtext(side=1,line=2,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,formatC(ymaj,format="fg"));axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"Si (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"DOC (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$TN.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~TN.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(TN.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.TN.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="TN x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"TN (mM)")
+
+
+sma.rslt$Pval=ifelse(sma.rslt$Pval<0.01,"<0.01",round(sma.rslt$Pval,2))
+sma.rslt$R2=round(sma.rslt$R2,3)
+
+```
+
+
+```{r,echo=F}
+kable(sma.rslt,col.names = c("Ecoregion","Comparison (x by Y)","R\u00B2","SMA Slope","\u03C1-value"))%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)%>%
+  collapse_rows(columns=1,valign="top")
+
+```
+
+
+## `r paste(WSA_regions$Eco_Name_full[5])`
+
+```{r ,echo=FALSE,fig.width=6,fig.height=5,fig.align='center' }
+sma.rslt=data.frame()
+i=5
+tmp=subset(NLA2007,ECO9==WSA_regions$ECO9[i])
+par(family="serif",oma=c(2.5,3,1,0.25),mar=c(1.5,2,0.5,1.25))
+layout(matrix(1:9,3,3,byrow=T))
+y.lab.line=3.5
+
+ylim.val=range(tmp$DOC.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(DOC.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,DOC.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.DOC.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x DOC",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+mtext(side=3,WSA_regions$Eco_Name_full[i])
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TN (mM)")
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TN (mM)")
+#mtext(side=1,line=2,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,formatC(ymaj,format="fg"));axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"Si (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"DOC (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$TN.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~TN.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(TN.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.TN.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="TN x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"TN (mM)")
+
+
+sma.rslt$Pval=ifelse(sma.rslt$Pval<0.01,"<0.01",round(sma.rslt$Pval,2))
+sma.rslt$R2=round(sma.rslt$R2,3)
+
+```
+
+
+```{r,echo=F}
+kable(sma.rslt,col.names = c("Ecoregion","Comparison (x by Y)","R\u00B2","SMA Slope","\u03C1-value"))%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)%>%
+  collapse_rows(columns=1,valign="top")
+
+```
+
+## `r paste(WSA_regions$Eco_Name_full[6])`
+
+```{r ,echo=FALSE,fig.width=6,fig.height=5,fig.align='center' }
+sma.rslt=data.frame()
+i=6
+tmp=subset(NLA2007,ECO9==WSA_regions$ECO9[i])
+par(family="serif",oma=c(2.5,3,1,0.25),mar=c(1.5,2,0.5,1.25))
+layout(matrix(1:9,3,3,byrow=T))
+y.lab.line=3.5
+
+ylim.val=range(tmp$DOC.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(DOC.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,DOC.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.DOC.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x DOC",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+mtext(side=3,WSA_regions$Eco_Name_full[i])
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TN (mM)")
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TN (mM)")
+#mtext(side=1,line=2,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,formatC(ymaj,format="fg"));axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"Si (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"DOC (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$TN.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~TN.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(TN.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.TN.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="TN x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"TN (mM)")
+
+
+sma.rslt$Pval=ifelse(sma.rslt$Pval<0.01,"<0.01",round(sma.rslt$Pval,2))
+sma.rslt$R2=round(sma.rslt$R2,3)
+
+```
+
+
+```{r,echo=F}
+kable(sma.rslt,col.names = c("Ecoregion","Comparison (x by Y)","R\u00B2","SMA Slope","\u03C1-value"))%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)%>%
+  collapse_rows(columns=1,valign="top")
+
+```
+
+## `r paste(WSA_regions$Eco_Name_full[7])`
+
+```{r ,echo=FALSE,fig.width=6,fig.height=5,fig.align='center' }
+sma.rslt=data.frame()
+i=7
+tmp=subset(NLA2007,ECO9==WSA_regions$ECO9[i])
+par(family="serif",oma=c(2.5,3,1,0.25),mar=c(1.5,2,0.5,1.25))
+layout(matrix(1:9,3,3,byrow=T))
+y.lab.line=3.5
+
+ylim.val=range(tmp$DOC.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(DOC.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,DOC.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.DOC.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x DOC",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+mtext(side=3,WSA_regions$Eco_Name_full[i])
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TN (mM)")
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TN (mM)")
+#mtext(side=1,line=2,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,formatC(ymaj,format="fg"));axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"Si (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"DOC (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$TN.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~TN.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(TN.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.TN.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="TN x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"TN (mM)")
+
+
+sma.rslt$Pval=ifelse(sma.rslt$Pval<0.01,"<0.01",round(sma.rslt$Pval,2))
+sma.rslt$R2=round(sma.rslt$R2,3)
+
+```
+
+
+```{r,echo=F}
+kable(sma.rslt,col.names = c("Ecoregion","Comparison (x by Y)","R\u00B2","SMA Slope","\u03C1-value"))%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)%>%
+  collapse_rows(columns=1,valign="top")
+
+```
+
+## `r paste(WSA_regions$Eco_Name_full[8])`
+
+```{r ,echo=FALSE,fig.width=6,fig.height=5,fig.align='center' }
+sma.rslt=data.frame()
+i=8
+tmp=subset(NLA2007,ECO9==WSA_regions$ECO9[i])
+par(family="serif",oma=c(2.5,3,1,0.25),mar=c(1.5,2,0.5,1.25))
+layout(matrix(1:9,3,3,byrow=T))
+y.lab.line=3.5
+
+ylim.val=range(tmp$DOC.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(DOC.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,DOC.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.DOC.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x DOC",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+mtext(side=3,WSA_regions$Eco_Name_full[i])
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TN (mM)")
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TN (mM)")
+#mtext(side=1,line=2,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,formatC(ymaj,format="fg"));axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"Si (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"DOC (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$TN.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~TN.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(TN.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.TN.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="TN x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"TN (mM)")
+
+
+sma.rslt$Pval=ifelse(sma.rslt$Pval<0.01,"<0.01",round(sma.rslt$Pval,2))
+sma.rslt$R2=round(sma.rslt$R2,3)
+
+```
+
+
+```{r,echo=F}
+kable(sma.rslt,col.names = c("Ecoregion","Comparison (x by Y)","R\u00B2","SMA Slope","\u03C1-value"))%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)%>%
+  collapse_rows(columns=1,valign="top")
+
+```
+
+## `r paste(WSA_regions$Eco_Name_full[9])`
+
+```{r ,echo=FALSE,fig.width=6,fig.height=5,fig.align='center' }
+sma.rslt=data.frame()
+i=9
+tmp=subset(NLA2007,ECO9==WSA_regions$ECO9[i])
+par(family="serif",oma=c(2.5,3,1,0.25),mar=c(1.5,2,0.5,1.25))
+layout(matrix(1:9,3,3,byrow=T))
+y.lab.line=3.5
+
+ylim.val=range(tmp$DOC.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(DOC.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,DOC.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.DOC.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x DOC",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+mtext(side=3,WSA_regions$Eco_Name_full[i])
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,ymaj);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TN (mM)")
+
+ylim.val=range(tmp$TN.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TN.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TN.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TN.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TN",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TN (mM)")
+#mtext(side=1,line=2,"DOC (mM)")
+
+plot(0:1,0:1,axes=F,type="n",ylab=NA,xlab=NA)
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$Si.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~Si.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(Si.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.Si.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="Si x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,formatC(ymaj,format="fg"));axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"Si (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$DOC.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~DOC.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(DOC.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.DOC.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="DOC x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"DOC (mM)")
+
+ylim.val=range(tmp$TP.mM,na.rm=T);ymaj=log.scale.fun(ylim.val,"major");ymin=log.scale.fun(ylim.val,"minor")
+xlim.val=range(tmp$TN.mM,na.rm=T);xmaj=log.scale.fun(xlim.val,"major");xmin=log.scale.fun(xlim.val,"minor")
+plot(TP.mM~TN.mM,tmp,log="xy",ylim=ylim.val,xlim=xlim.val,yaxt="n",xaxt="n",ylab=NA,xlab=NA,type="n")
+abline(h=ymaj,v=xmaj,lty=3,col="grey")
+with(tmp,points(TN.mM,TP.mM,pch=21,bg=adjustcolor("dodgerblue1",0.5),col=adjustcolor("grey",0.5),lwd=0.2,cex=1.25))
+mod=sma(log.TP.mM~log.TN.mM,tmp,method="SMA",slope.test=1)
+tmp.rslt=data.frame(ECO=WSA_regions$Eco_Name_full[i],Compare_xy="TN x TP",R2=as.numeric(mod$r2),Slope=round(mod$slopetest[[1]]$b,3),Pval=mod$slopetest[[1]]$p)
+sma.rslt=rbind(sma.rslt,tmp.rslt)
+y.mod=(coef(mod)[2]*log(xmin))+coef(mod)[1]
+lines(xmin,exp(y.mod),lty=2,col="indianred1",lwd=2)
+axis_fun(2,ymaj,ymin,NA);axis_fun(1,xmaj,xmin,xmaj);box(lwd=1)
+#mtext(side=2,line=y.lab.line,"TP (mM)")
+mtext(side=1,line=2,"TN (mM)")
+
+
+sma.rslt$Pval=ifelse(sma.rslt$Pval<0.01,"<0.01",round(sma.rslt$Pval,2))
+sma.rslt$R2=round(sma.rslt$R2,3)
+
+```
+
+
+```{r,echo=F}
+kable(sma.rslt,col.names = c("Ecoregion","Comparison (x by Y)","R\u00B2","SMA Slope","\u03C1-value"))%>%
+  kable_styling(bootstrap_options = "striped", full_width = F)%>%
+  collapse_rows(columns=1,valign="top")
+
+```
+
+
+
+<br>
+
+#
+
+
+
+
+## References
+
+-  Brown, J. H., Gupta, V. K., Li, B.-L., Milne, B. T., Restrepo, C., and West, G. B. (2002). The fractal nature of nature: power laws, ecological complexity and biodiversity. Philos Trans R Soc Lond B Biol Sci 357, 619–626. doi:10.1098/rstb.2001.0993.
+
+-  Cleveland, C. C., and Liptzin, D. (2007). C:N:P stoichiometry in soil: is there a “Redfield ratio” for the microbial biomass? Biogeochemistry 85, 235–252. doi:10.1007/s10533-007-9132-0.
+
+-  Herlihy, A. T., Paulsen, S. G., Sickle, J. V., Stoddard, J. L., Hawkins, C. P., and Yuan, L. L. (2008). Striving for consistency in a national assessment: the challenges of applying a reference-condition approach at a continental scale. Journal of the North American Benthological Society 27, 860–877. doi:10.1899/08-081.1.
+
+-  Marquet, P. A., Quinones, R. A., Abadas, S., Labra, F., Tognelli, M., Arim, M., et al. (2005). Scaling and power-laws in ecological systems. Journal of Experimental Biology 208, 1749–1769. doi:10.1242/jeb.01588.
+
+-  USEPA (2009). Survey of the Nation’s Lakes Quality Assurance Project Plan.  EPA/841-B-07-003. Washington, DC: U.S. Environmental Protection Agency, Office of Water and Office of Research and Development.
+
+-  Warton, D. I., Wright, I. J., Falster, D. S., and Westoby, M. (2006). Bivariate line-fitting methods for allometry. Biological Reviews 81, 259–291. doi:10.1017/S1464793106007007.
+
+-  Wymore, A. S., Brereton, R. L., Ibarra, D. E., Maher, K., and McDowell, W. H. (2017). Critical zone structure controls concentration-discharge relationships and solute generation in forested tropical montane watersheds. Water Resour. Res. 53, 6279–6295. doi:10.1002/2016WR020016.
+
+
+***
+<!--
+Created and Maintained by Paul Julian, PhD PWS  [`r icon::fa("envelope")`](mailto:pauljulianphd@gmail.com) [`r icon::fa("chrome")`](https://swampthingpaul.github.io) [`r icon::fa("twitter")`](https://twitter.com/SwampThingPaul) [`r icon::fa("github")`](https://github.com/SwampThingPaul)    
+
+Updated: `r paste(format(Sys.Date(),"%B %d, %Y"))`
+
+Code hosted at [`r icon::fa("github")`](https://github.com/SwampThingPaul/CRE-WQ)
+-->
+
+***
