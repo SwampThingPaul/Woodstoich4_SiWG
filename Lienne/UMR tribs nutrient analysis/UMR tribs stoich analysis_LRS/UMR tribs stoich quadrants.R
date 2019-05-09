@@ -15,4 +15,4 @@ UMRTribs_NutrientStoich_LRS$MolarSi_N = ifelse(UMRTribs_NutrientStoich_LRS$Molar
 
 #plot Si:N vs. Si:P
 plot(UMRTribs_NutrientStoich_LRS$MolarSi_P ~ UMRTribs_NutrientStoich_LRS$MolarSi_N)
-abline(v=1, h=20, col="red", type=3)
+abline(v=1, h=20, col="red")
