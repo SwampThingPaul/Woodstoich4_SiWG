@@ -16,3 +16,17 @@ UMRTribs_NutrientStoich_LRS$MolarSi_N = ifelse(UMRTribs_NutrientStoich_LRS$Molar
 #plot Si:N vs. Si:P
 plot(UMRTribs_NutrientStoich_LRS$MolarSi_P ~ UMRTribs_NutrientStoich_LRS$MolarSi_N)
 abline(v=1, h=20, col="red")
+
+#calculate average N:P:Si by day of year (DOY)
+library(lubridate)
+UMRTribs_NutrientStoich_LRS$DOY = yday(UMRTribs_NutrientStoich_LRS$DATE)
+
+#separate data by sites
+UMR_site1 = subset(UMRTribs_NutrientStoich_LRS, UMRTribs_NutrientStoich_LRS$FLDNUM == 1)
+UMR_site2 = subset(UMRTribs_NutrientStoich_LRS, UMRTribs_NutrientStoich_LRS$FLDNUM == 2)
+UMR_site3 = subset(UMRTribs_NutrientStoich_LRS, UMRTribs_NutrientStoich_LRS$FLDNUM == 3)
+UMR_site4 = subset(UMRTribs_NutrientStoich_LRS, UMRTribs_NutrientStoich_LRS$FLDNUM == 4)
+UMR_site5 = subset(UMRTribs_NutrientStoich_LRS, UMRTribs_NutrientStoich_LRS$FLDNUM == 5)
+UMR_site6 = subset(UMRTribs_NutrientStoich_LRS, UMRTribs_NutrientStoich_LRS$FLDNUM == 6)
+UMR_site7 = subset(UMRTribs_NutrientStoich_LRS, UMRTribs_NutrientStoich_LRS$FLDNUM == 7)
+
