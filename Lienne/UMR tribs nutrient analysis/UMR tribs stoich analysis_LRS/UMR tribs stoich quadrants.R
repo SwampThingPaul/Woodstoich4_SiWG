@@ -30,3 +30,40 @@ UMR_site5 = subset(UMRTribs_NutrientStoich_LRS, UMRTribs_NutrientStoich_LRS$FLDN
 UMR_site6 = subset(UMRTribs_NutrientStoich_LRS, UMRTribs_NutrientStoich_LRS$FLDNUM == 6)
 UMR_site7 = subset(UMRTribs_NutrientStoich_LRS, UMRTribs_NutrientStoich_LRS$FLDNUM == 7)
 
+#takes the mean and sd in each column
+UMR_site1_stoichavg = aggregate(UMR_site1, by=list(UMR_site1$DOY), FUN=mean)
+UMR_site1_stoichsd = aggregate(UMR_site1, by=list(UMR_site1$DOY), FUN=sd)
+UMR_site2_stoichavg = aggregate(UMR_site2, by=list(UMR_site2$DOY), FUN=mean)
+UMR_site2_stoichsd = aggregate(UMR_site2, by=list(UMR_site2$DOY), FUN=sd)
+UMR_site3_stoichavg = aggregate(UMR_site3, by=list(UMR_site3$DOY), FUN=mean)
+UMR_site3_stoichsd = aggregate(UMR_site3, by=list(UMR_site3$DOY), FUN=sd)
+UMR_site4_stoichavg = aggregate(UMR_site4, by=list(UMR_site4$DOY), FUN=mean)
+UMR_site4_stoichsd = aggregate(UMR_site4, by=list(UMR_site4$DOY), FUN=sd)
+UMR_site5_stoichavg = aggregate(UMR_site5, by=list(UMR_site5$DOY), FUN=mean)
+UMR_site5_stoichsd = aggregate(UMR_site5, by=list(UMR_site5$DOY), FUN=sd)
+UMR_site6_stoichavg = aggregate(UMR_site6, by=list(UMR_site6$DOY), FUN=mean)
+UMR_site6_stoichsd = aggregate(UMR_site6, by=list(UMR_site6$DOY), FUN=sd)
+UMR_site7_stoichavg = aggregate(UMR_site7, by=list(UMR_site7$DOY), FUN=mean)
+UMR_site7_stoichsd = aggregate(UMR_site7, by=list(UMR_site7$DOY), FUN=sd)
+#why do the calculated average N:P:Si values aggregate to NA?
+
+UMR_site1_DOYavg = data.frame("DOY"=UMR_site1_stoichavg$Group.1, 
+                              "Mean Molar N"=UMR_site1_stoichavg$MolarTN, "SD Molar N"=UMR_site1_stoichsd$MolarTN,
+                              "Mean Molar P"=UMR_site1_stoichavg$MolarTP, "SD Molar P"=UMR_site1_stoichsd$MolarTP,
+                              "Mean Molar Si"=UMR_site1_stoichavg$MolarSi, "SD Molar Si"=UMR_site1_stoichsd$MolarSi)
+
+#plot average N, P, and Si by DOY
+library(ggplot2)
+UMR_site1_nutavg = ggplot(data=UMR_site1_DOYavg)+
+  geom_point(mapping = aes(x=DOY, y=Mean.Molar.N))
+
+
+
+
+
+
+
+
+
+
+
