@@ -1,0 +1,75 @@
+---
+title: "Upper Mississippi River Restoration Site Explore"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Site Explorer
+
+```{r dat,echo=FALSE,message=FALSE}
+#Clears Everything...start fresh.
+#rm(list=ls(all=T));cat("\014");dev.off()
+
+#Libraries
+library(AnalystHelper);#devtools::install_github("SwampThingPaul/AnalystHelper")
+library(plyr)
+library(reshape)
+library(zoo);
+
+
+library(rgdal)
+library(tmap)
+#Custom Functions
+
+#Paths
+wd="D:/UF/WoodStoich19/Si_WG"
+#setwd("D:/UF/WoodStoich19/Si_WG")
+
+paths=paste0(wd,c("/Exports/","/Plots/","/Data/Miss_UpperTrib_dataset/RAW_USGS_TribData/"))
+#paths=paste0(getwd(),c("/Exports/","/Plots/","/Data/Miss_UpperTrib_dataset/RAW_USGS_TribData/"))
+#Folder.Maker(paths);#One and done. Creates folders in working directory.
+export.path=paths[1]
+plot.path=paths[2]
+data.path=paths[3]
+
+utm15=CRS("+proj=utm +zone=15 +datum=WGS84 +units=m")
+
+# Data --------------------------------------------------------------------
+
+dat=read.csv(paste0(data.path,"UMRTribs_Filtered_1.26.18.csv"))
+dat$DATETIME=date.fun(paste0(dat$DATE," ",dat$TIME,":00"),tz="America/Chicago",form="%m/%d/%Y %H:%M:%S")
+dat$DATE=date.fun(dat$DATE,tz="America/Chicago",form="%m/%d/%Y")
+#head(dat)
+
+#unique(dat$SITE_NAME)
+#ddply(dat,"SITE_NAME",summarise,N.val=N(SITE_NAME))
+sp.dat=ddply(dat,c("SITE_NAME","FLDNUM","EASTING","NORTHING"),summarise,N.val=N(SITE_NAME),min.date=min(DATE),max.date=max(DATE))
+sp.dat$yrs.dat=with(sp.dat,as.numeric(max.date-min.date)*3.17098e-8)
+
+#spatial data
+tmap_mode("view")
+
+sp.dat.shp=SpatialPointsDataFrame(coords=sp.dat[,c("EASTING","NORTHING")], data=sp.dat,proj4string=utm15)
+
+```
+
+
+```{r map,fig.align="center",fig.cap="Site locations based on Field Number along the Upper Mississppi River.", echo=FALSE,message=FALSE,out.width="100%"}
+tm_basemap(leaflet::providers$Esri.WorldImagery,alpha=0.9)+
+  tm_shape(sp.dat.shp)+tm_dots(col="FLDNUM",popup.vars=c("SITE_NAME","FLDNUM","N.val","min.date","max.date","yrs.dat"))
+  
+```
+
+
+***
+Created and Maintained by Paul Julian, PhD PWS  [`r icon::fa("envelope")`](mailto:pauljulianphd@gmail.com) [`r icon::fa("chrome")`](https://swampthingecology.org) [`r icon::fa("twitter")`](https://twitter.com/SwampThingPaul) [`r icon::fa("github")`](https://github.com/SwampThingPaul)    
+
+
+Code hosted at [`r icon::fa("github")`](https://github.com/SwampThingPaul/Woodstoich4_SiWG/tree/51036b36ae7262f5ba5216563fcf8652a5055ab5/PJ)
+
+***
