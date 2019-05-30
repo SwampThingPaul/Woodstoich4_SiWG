@@ -175,6 +175,7 @@ dat.xtab.melt=subset(dat.xtab.melt,is.na(value)==F)
 annual=ddply(dat.xtab.melt,c("CY","STRATUM","STRATUM_Descript","FLDNUM","Pool","parameter"),summarise,mean.val=mean(value,na.rm=T),sd.val=sd(value,na.rm=T),N.val=N(value))
 decade=ddply(dat.xtab.melt,c("decade","STRATUM","STRATUM_Descript","FLDNUM","Pool","parameter"),summarise,mean.val=mean(value,na.rm=T),sd.val=sd(value,na.rm=T),N.val=N(value))
 season=ddply(dat.xtab.melt,c("season","STRATUM","STRATUM_Descript","FLDNUM","Pool","parameter"),summarise,mean.val=mean(value,na.rm=T),sd.val=sd(value,na.rm=T),N.val=N(value))
+pool=ddply(dat.xtab.melt,c("STRATUM","STRATUM_Descript","FLDNUM","Pool","parameter"),summarise,mean.val=mean(value,na.rm=T),sd.val=sd(value,na.rm=T),N.val=N(value))
 
 parameter.units=data.frame(parameter=vars,units=c(rep("mg/L",5),rep("mol:mol",6)))
 
@@ -182,3 +183,4 @@ parameter.units=data.frame(parameter=vars,units=c(rep("mg/L",5),rep("mol:mol",6)
 xlsx::write.xlsx(merge(season,parameter.units,"parameter"),paste0(export.path,"SRS_summarystats.xlsx"),sheetName="Seasonal",row.names = F,showNA=F)
 xlsx::write.xlsx(merge(decade,parameter.units,"parameter"),paste0(export.path,"SRS_summarystats.xlsx"),sheetName="Decade",row.names = F,showNA=F,append=T)
 xlsx::write.xlsx(merge(annual,parameter.units,"parameter"),paste0(export.path,"SRS_summarystats.xlsx"),sheetName="Annual",row.names = F,showNA=F,append=T)
+xlsx::write.xlsx(merge(pool,parameter.units,"parameter"),paste0(export.path,"SRS_summarystats.xlsx"),sheetName="Pool",row.names = F,showNA=F,append=T)
