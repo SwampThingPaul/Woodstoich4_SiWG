@@ -18,8 +18,16 @@ plot(UMR_mainstem_nutrients$NSi_ratio, UMR_mainstem_nutrients$PSi_ratio)
 #calculate average N:Si and P:Si by day of year (DOY)
 library(lubridate)
 UMR_mainstem_nutrients$DOY = yday(UMR_mainstem_nutrients$DATE)
-UMR_mainstem_stoichavg = aggregate(UMR_mainstem_stoich, by=list(UMR_mainstem_stoich$DOY), FUN=mean)
-plot(UMR_mainstem_stoichavg$DOY, UMR_mainstem_nutrients$NSi_ratio, 
+
+#create dataframe for just DOY, N:Si, and P:Si then calculate average by DOY
+##Convert stoich values to type numeric
+UMR_mainstem_stoich=data.frame("DOY"=UMR_mainstem_nutrients$DOY, 
+                               "NSiratio"=as.numeric(UMR_mainstem_nutrients$NSi_ratio), 
+                               "PSiratio"=as.numeric(UMR_mainstem_nutrients$PSi_ratio))
+#remove NAs from stoich dataframe
+UMR_mainstem_stoichavg = aggregate(UMR_mainstem_stoich, by=list(UMR_mainstem_stoich$DOY), FUN=function(x)mean(x,na.rm=TRUE))
+
+plot(UMR_mainstem_stoichavg$DOY, UMR_mainstem_nutrients$NSiratio, 
      xlab="DOY", ylab="Average N:Si ratio", main="UMR mainstem sites 1-7",
      cex=0.5)
 
