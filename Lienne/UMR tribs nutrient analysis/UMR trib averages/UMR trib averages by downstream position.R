@@ -8,6 +8,7 @@ UMR_trib_SiTN = subset(UMR_trib_averages_locat, UMR_trib_averages_locat$paramete
 UMR_trib_SiTP = subset(UMR_trib_averages_locat, UMR_trib_averages_locat$parameter=="SiTP")
 
 library(ggplot2)
+library(devtools)
 #UMR trib averages box plot for [Si], Si:TN, and Si:TP by relative downstream position
 UMR_tribSiavg_DSposi = ggplot(UMR_trib_Si, aes(x=`Relative Downstream Position`, y=mean.val))+
   geom_point(aes(color=FLDNUM), size=3)+
@@ -29,3 +30,13 @@ UMR_tribSiTPavg_DSposi = ggplot(UMR_trib_SiTP, aes(x=`Relative Downstream Positi
   labs(title="UMR tributaries average Si:TP", y="Molar Si:TP")+
   scale_x_continuous(breaks=seq(0,23,1))
 UMR_tribSiTPavg_DSposi
+
+#lm equations for [Si], Si:TN, and Si:TP
+Si_lm = lm(mean.val ~ `Relative Downstream Position`, data=UMR_trib_Si)
+summary(Si_lm)
+
+SiTN_lm = lm(mean.val ~ `Relative Downstream Position`, data=UMR_trib_SiTN)
+summary(SiTN_lm)
+
+SiTP_lm = lm(mean.val ~ `Relative Downstream Position`, data=UMR_trib_SiTP)
+summary(SiTP_lm)
