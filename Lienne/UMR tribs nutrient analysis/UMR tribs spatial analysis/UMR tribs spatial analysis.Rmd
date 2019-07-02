@@ -15,6 +15,7 @@ UMR_trib = merge(Fixed_summarystats_2010.2018, tribname_coordinates, by="LOCATCD
 ```
 
 Rank latitude values and compare with "relative downstream position"
+Higher latitude values represent more northern (upstream) sites
 ```{r}
 UMR_trib$lat.rank = rank(UMR_trib$Lat, ties.method = "min")
 UMR_trib_lat_rank=data.frame("value"=unique(UMR_trib$lat.rank))
@@ -25,6 +26,7 @@ Trib_names_locations=Trib_names_locations[c("LOCATCD", "Relative Downstream Posi
 UMR_trib_locations=merge(UMR_trib, Trib_names_locations, by="LOCATCD")
 plot(UMR_trib_locations$lat_rank, UMR_trib_locations$`Relative Downstream Position`)
 ```
+Relative downstream position matches with latitudes
 
 Get Si, Si:TN, and Si:TP parameters from fixed summary stats
 Log transform ratios
@@ -42,7 +44,8 @@ library(ggplot2)
 library(grDevices)
 UMR_trib_Sispatial = ggplot(UMR_trib_Si, aes(x=Lat, y=mean.val))+
   geom_point(size=3)+
-  labs(title="UMR tributaries average Si concentration", y="Si concentration (mg SiO2/L)", x="Degrees latitude")
+  labs(title="UMR tributaries average Si concentration", y="Si concentration (mg SiO2/L)", x="Degrees latitude")+
+  scale_x_reverse()
 UMR_trib_Sispatial
 ggsave(file="UMR_trib_Sispatial.png", width=10, height=7)
 ```
@@ -50,14 +53,16 @@ ggsave(file="UMR_trib_Sispatial.png", width=10, height=7)
 ```{r, echo=FALSE}
 UMR_trib_SiTNspatial = ggplot(UMR_trib_SiTN, aes(x=Lat, y=log.mean.val))+
   geom_point(size=3)+
-  labs(title="UMR tributaries average Si:TN", y="log(Molar Si:TN)", x="Degrees latitude")
+  labs(title="UMR tributaries average Si:TN", y="log(Molar Si:TN)", x="Degrees latitude")+
+  scale_x_reverse()
 UMR_trib_SiTNspatial
 ggsave(file="UMR_trib_SiTNspatial.png", width=10, height=7)
 ```
 ```{r echo=FALSE}
 UMR_trib_SiTPspatial = ggplot(UMR_trib_SiTP, aes(x=Lat, y=log.mean.val))+
   geom_point(size=3)+
-  labs(title="UMR tributaries average Si:TP", y="log(Molar Si:TP)", x="Degrees latitude")
+  labs(title="UMR tributaries average Si:TP", y="log(Molar Si:TP)", x="Degrees latitude")+
+  scale_x_reverse()
 UMR_trib_SiTPspatial
 ggsave(file="UMR_trib_SiTPspatial.png", width=10, height=7)
 ```
