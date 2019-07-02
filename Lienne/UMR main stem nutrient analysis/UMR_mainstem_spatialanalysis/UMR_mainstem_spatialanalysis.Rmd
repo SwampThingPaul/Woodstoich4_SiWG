@@ -1,3 +1,15 @@
+---
+title: "UMR main stem spatial analysis markdown"
+author: "Lienne Sethna"
+date: "July 2, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
 #add lat/lon coordinates by UMR LOCATCD
 UMR_mainstem = merge(Fixed_summarystats_2010_2018, UMR_mainstem_coordinates, by="LOCATCD")
 
@@ -5,21 +17,27 @@ UMR_mainstem = merge(Fixed_summarystats_2010_2018, UMR_mainstem_coordinates, by=
 UMR_mainstem_Si = subset(UMR_mainstem, UMR_mainstem$parameter=="SI")
 UMR_mainstem_SiTN = subset(UMR_mainstem, UMR_mainstem$parameter=="SiTN")
 UMR_mainstem_SiTP = subset(UMR_mainstem, UMR_mainstem$parameter=="SiTP")
+```
 
-#plot Si, Si:TN, Si:TP by latitude
+Plot Si, Si:TN, and Si:TP by latitude
+
+```{r pressure, echo=FALSE}
 library(ggplot2)
 
 UMR_mainstem_Sispatial = ggplot(UMR_mainstem_Si, aes(x=Lat, y=mean.val))+
   geom_point(size=3)+
   labs(title="UMR mainstem average Si concentration", y="Si concentration (mg SiO2/L)", x="Degrees latitude")
 UMR_mainstem_Sispatial
-
+```
+```{r pressure, echo=FALSE}
 UMR_mainstem_SiTNspatial = ggplot(UMR_mainstem_SiTN, aes(x=Lat, y=mean.val))+
   geom_point(size=3)+
   labs(title="UMR mainstem average Si:TN", y="Molar Si:TN", x="Degrees latitude")
 UMR_mainstem_SiTNspatial
-
+```
+```{r pressure, echo=FALSE}
 UMR_mainstem_SiTPspatial = ggplot(UMR_mainstem_SiTP, aes(x=Lat, y=mean.val))+
   geom_point(size=3)+
   labs(title="UMR mainstem average Si:TP", y="Molar Si:TP", x="Degrees latitude")
 UMR_mainstem_SiTPspatial
+```
