@@ -1,0 +1,63 @@
+---
+title: "UMR tribs spatial analysis"
+author: "Lienne Sethna"
+date: "July 2, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Merge tributary coordinates with Fixed summary stats for 2010-2018
+```{r}
+UMR_trib = merge(Fixed_summarystats_2010.2018, tribname_coordinates, by="LOCATCD")
+```
+
+Rank latitude values and compare with "relative downstream position"
+```{r}
+UMR_trib$lat.rank = rank(UMR_trib$Lat, ties.method = "min")
+UMR_trib_lat_rank=data.frame("value"=unique(UMR_trib$lat.rank))
+UMR_trib_lat_rank$rank=rank(UMR_trib_lat_rank$value)
+UMR_trib$lat_rank=ifelse(UMR_trib$lat.rank==UMR_trib_lat_rank$value, UMR_trib_lat_rank$rank, "")
+
+Trib_names_locations=Trib_names_locations[c("LOCATCD", "Relative Downstream Position")]
+UMR_trib_locations=merge(UMR_trib, Trib_names_locations, by="LOCATCD")
+plot(UMR_trib_locations$lat_rank, UMR_trib_locations$`Relative Downstream Position`)
+```
+
+Get Si, Si:TN, and Si:TP parameters from fixed summary stats
+Log transform ratios
+```{r}
+UMR_trib_Si = subset(UMR_trib, UMR_trib$parameter=="SI")
+UMR_trib_SiTN = subset(UMR_trib, UMR_trib$parameter=="SiTN")
+UMR_trib_SiTN$log.mean.val = log10(UMR_trib_SiTN$mean.val)
+UMR_trib_SiTP = subset(UMR_trib, UMR_trib$parameter=="SiTP")
+UMR_trib_SiTP$log.mean.val = log10(UMR_trib_SiTP$mean.val)
+```
+
+Plot Si, Si:TN, and Si:TP by latitude
+```{r, echo=FALSE}
+library(ggplot2)
+library(grDevices)
+UMR_trib_Sispatial = ggplot(UMR_trib_Si, aes(x=Lat, y=mean.val))+
+  geom_point(size=3)+
+  labs(title="UMR tributaries average Si concentration", y="Si concentration (mg SiO2/L)", x="Degrees latitude")
+UMR_trib_Sispatial
+ggsave(file="UMR_trib_Sispatial.png", width=10, height=7)
+```
+
+```{r, echo=FALSE}
+UMR_trib_SiTNspatial = ggplot(UMR_trib_SiTN, aes(x=Lat, y=log.mean.val))+
+  geom_point(size=3)+
+  labs(title="UMR tributaries average Si:TN", y="log(Molar Si:TN)", x="Degrees latitude")
+UMR_trib_SiTNspatial
+ggsave(file="UMR_trib_SiTNspatial.png", width=10, height=7)
+```
+```{r echo=FALSE}
+UMR_trib_SiTPspatial = ggplot(UMR_trib_SiTP, aes(x=Lat, y=log.mean.val))+
+  geom_point(size=3)+
+  labs(title="UMR tributaries average Si:TP", y="log(Molar Si:TP)", x="Degrees latitude")
+UMR_trib_SiTPspatial
+ggsave(file="UMR_trib_SiTPspatial.png", width=10, height=7)
+```
