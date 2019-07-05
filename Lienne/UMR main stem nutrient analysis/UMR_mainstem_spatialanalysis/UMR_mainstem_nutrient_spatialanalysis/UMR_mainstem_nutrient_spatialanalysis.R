@@ -30,12 +30,16 @@ UMR_mainstem_Sispatial = ggplot(UMR_mainstem_Si, aes(x=Lat, y=mean.val))+
 UMR_mainstem_Sispatial
 
 SiRM.formula = UMR_mainstem_Si$mean.val ~ UMR_mainstem_Si$rivermile
+SiRM.lm = lm(data=UMR_mainstem_Si, mean.val~rivermile)
+summary(SiRM.lm)
+
 UMR_mainstem_SiRM = ggplot(UMR_mainstem_Si, aes(x=rivermile, y=mean.val))+
   geom_point(size=3)+
   geom_smooth(method='lm', se=TRUE, color="black")+
   stat_poly_eq(formula=SiRM.formula, 
                aes(label=paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +
+  scale_x_reverse()+
   labs(title="UMR main stem average Si concentration", y="Si concentration (mg SiO2/L)", x="River Mile")
 UMR_mainstem_SiRM
 ggsave(file="UMR main stem Si by river mile.png", width=10, height=7)
@@ -47,12 +51,16 @@ UMR_mainstem_SiTNspatial = ggplot(UMR_mainstem_SiTN, aes(x=Lat, y=mean.val))+
 UMR_mainstem_SiTNspatial
 
 SiTNRM.formula = UMR_mainstem_SiTN$log.mean.val ~ UMR_mainstem_SiTN$rivermile
+SiTNRM.lm = lm(data=UMR_mainstem_SiTN, mean.val~rivermile)
+summary(SiTNRM.lm)
+
 UMR_mainstem_SiTNRM = ggplot(UMR_mainstem_SiTN, aes(x=rivermile, y=log.mean.val))+
   geom_point(size=3)+
   geom_smooth(method='lm', se=TRUE, color="black")+
   stat_poly_eq(formula=SiTNRM.formula, 
                aes(label=paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +
+  scale_x_reverse()+
   labs(title="UMR main stem average Si:TN", y="log(Molar Si:TN)", x="River Mile")
 UMR_mainstem_SiTNRM
 ggsave(file="UMR main stem SiTN by river mile.png", width=10, height=7)
@@ -64,12 +72,16 @@ UMR_mainstem_SiTPspatial = ggplot(UMR_mainstem_SiTP, aes(x=Lat, y=mean.val))+
 UMR_mainstem_SiTPspatial
 
 SiTPRM.formula = UMR_mainstem_SiTP$log.mean.val ~ UMR_mainstem_SiTP$rivermile
+SiTPRM.lm = lm(data=UMR_mainstem_SiTP, mean.val~rivermile)
+summary(SiTPRM.lm)
+
 UMR_mainstem_SiTPRM = ggplot(UMR_mainstem_SiTP, aes(x=rivermile, y=log.mean.val))+
   geom_point(size=3)+
   geom_smooth(method='lm', se=TRUE, color="black")+
   stat_poly_eq(formula=SiTPRM.formula, 
                aes(label=paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +
+  scale_x_reverse()+
   labs(title="UMR main stem average Si:TP", y="log(Molar Si:TP)", x="River Mile")
 UMR_mainstem_SiTPRM
 ggsave(file="UMR main stem SiTP by river mile.png", width=10, height=7)
