@@ -12,19 +12,29 @@ UMR_mainstem_seasonalSiavg$season.f = factor(UMR_mainstem_seasonalSiavg$season,
                                              levels=c('Summer', 'Fall', 'Winter', 'Spring'))
 UMR_seasonalSiavg_allFLDNUM = ggplot(UMR_mainstem_seasonalSiavg, aes(x=season.f, y=mean.val))+
   geom_boxplot()+
-  labs(title="UMR main stem average Si concentration by season", y="Mean Si conc (mg SiO2/L")
+  labs(title="UMR main stem average Si concentration by season", 
+       y="Mean Si conc (mg SiO2/L)",
+       x="Season")
 UMR_seasonalSiavg_allFLDNUM
 ggsave(file="UMR main stem average Si by season.png", width=10, height=7)
 
+UMR_mainstem_seasonalSiTNavg$season.f = factor(UMR_mainstem_seasonalSiTNavg$season, 
+                                             levels=c('Summer', 'Fall', 'Winter', 'Spring'))
 UMR_seasonalSiTNavg_allFLDNUM = ggplot(UMR_mainstem_seasonalSiTNavg, aes(x=season.f, y=mean.val))+
   geom_boxplot()+
-  labs(title="UMR main stem average Si:TN by season", y="Molar Si:TN")
+  labs(title="UMR main stem average Si:TN by season", 
+       y="Molar Si:TN",
+       x="Season")
 UMR_seasonalSiTNavg_allFLDNUM
 ggsave(file="UMR main stem average SiTN by season.png", width=10, height=7)
 
+UMR_mainstem_seasonalSiTPavg$season.f = factor(UMR_mainstem_seasonalSiTPavg$season, 
+                                                           levels=c('Summer', 'Fall', 'Winter', 'Spring'))
 UMR_seasonalSiTPavg_allFLDNUM = ggplot(UMR_mainstem_seasonalSiTPavg, aes(x=season.f, y=mean.val))+
   geom_boxplot()+
-  labs(title="UMR main stem average Si:TP by season", y="Molar Si:TP")
+  labs(title="UMR main stem average Si:TP by season", 
+       y="Molar Si:TP",
+       x="Season")
 UMR_seasonalSiTPavg_allFLDNUM
 ggsave(file="UMR main stem average SiTP by season.png", width=10, height=7)
 
@@ -42,11 +52,12 @@ UMR_seasonalSiavg_byFLDNUM = ggplot(UMR_mainstem_seasonalSiavg, aes(x=FLDNUM, y=
 UMR_seasonalSiavg_byFLDNUM
 ggsave(file="UMR main stem FLDNUM Si by season.png", width=10, height=7)
 
-UMR_mainstem_seasonalSiTNavg$season.f = factor(UMR_mainstem_seasonalSiTNavg$season, 
+UMR_seasonalSiTNavg_allFLDNUM$season.f = factor(UMR_mainstem_seasonalSiTNavg$season, 
                                              levels=c('Summer', 'Fall', 'Winter', 'Spring'))
 UMR_seasonalSiTNavg_byFLDNUM = ggplot(UMR_mainstem_seasonalSiTNavg, aes(x=FLDNUM, y=mean.val, group=FLDNUM))+
   geom_boxplot()+
-  labs(title="UMR main stem average Si:TN by season", y="Molar Si:TN")+
+  labs(title="UMR main stem average Si:TN by season", 
+       y="Molar Si:TN")+
   scale_x_continuous(breaks=seq(0,7,1))+
   facet_wrap(~season.f)
 UMR_seasonalSiTNavg_byFLDNUM
