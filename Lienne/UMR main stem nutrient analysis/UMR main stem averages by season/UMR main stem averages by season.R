@@ -39,6 +39,17 @@ UMR_seasonalSiTPavg_allFLDNUM
 ggsave(file="UMR main stem average SiTP by season.png", width=10, height=7)
 
 ##=================
+#ANOVA between seasonal averages to test for significant seasonal differences
+#compute summary statistics by group
+library(dplyr)
+Si_averages=data.frame(group_by(UMR_mainstem_seasonalSiavg, season) %>%
+                           summarize(
+                             count=n(),
+                             mean=mean(mean.val, na.rm=TRUE)
+                           ))
+UMR_mainstem_SiANOVA = aov(mean~season, data=Si_averages)
+UMR_mainstem_SiANOVA
+##=================
 #plot by FLDNUMs with seasons on different plots
 #use factor command to order seasons by time rather than alphabetically
 ##=================
