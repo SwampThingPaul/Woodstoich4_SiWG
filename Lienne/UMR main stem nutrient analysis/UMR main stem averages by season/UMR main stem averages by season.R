@@ -47,8 +47,20 @@ Si_averages=data.frame(group_by(UMR_mainstem_seasonalSiavg, season) %>%
                              count=n(),
                              mean=mean(mean.val, na.rm=TRUE)
                            ))
+Si_averages$season=ordered(Si_averages$season,
+                           levels=c("Summer", "Fall", "Winter", "Spring"))
 UMR_mainstem_SiANOVA = aov(mean~season, data=Si_averages)
-UMR_mainstem_SiANOVA
+summary(UMR_mainstem_SiANOVA)
+
+SiTN_averages=data.frame(group_by(UMR_mainstem_seasonalSiTNavg, season) %>%
+                           summarize(
+                             count=n(),
+                             mean=mean(mean.val, na.rm=TRUE)
+                           ))
+SiTN_averages$season=ordered(SiTN_averages$season,
+                           levels=c("Summer", "Fall", "Winter", "Spring"))
+UMR_mainstem_SiTNANOVA = aov(mean~season, data=SiTN_averages)
+summary(UMR_mainstem_SiTNANOVA)
 ##=================
 #plot by FLDNUMs with seasons on different plots
 #use factor command to order seasons by time rather than alphabetically
