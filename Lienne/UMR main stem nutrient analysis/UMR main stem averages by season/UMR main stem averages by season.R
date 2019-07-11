@@ -47,20 +47,41 @@ Si_averages=data.frame(group_by(UMR_mainstem_seasonalSiavg, season) %>%
                              count=n(),
                              mean=mean(mean.val, na.rm=TRUE)
                            ))
-Si_averages$season=ordered(Si_averages$season,
-                           levels=c("Summer", "Fall", "Winter", "Spring"))
-UMR_mainstem_SiANOVA = aov(mean~season, data=Si_averages)
+
+UMR_mainstem_SiANOVA = aov(mean.val~season.f, data=UMR_mainstem_seasonalSiavg)
 summary(UMR_mainstem_SiANOVA)
+#check homogeneity of variances
+plot(UMR_mainstem_SiANOVA, 1)
+#check normality
+plot(UMR_mainstem_SiANOVA, 2)
+##extract residuals
+UMR_mainstem_SiAVOVA_residuals = residuals(object=UMR_mainstem_SiANOVA)
+##run Shapiro-Wilk test
+shapiro.test(x=UMR_mainstem_SiAVOVA_residuals)
 
 SiTN_averages=data.frame(group_by(UMR_mainstem_seasonalSiTNavg, season) %>%
                            summarize(
                              count=n(),
                              mean=mean(mean.val, na.rm=TRUE)
                            ))
-SiTN_averages$season=ordered(SiTN_averages$season,
-                           levels=c("Summer", "Fall", "Winter", "Spring"))
-UMR_mainstem_SiTNANOVA = aov(mean~season, data=SiTN_averages)
+
+UMR_mainstem_SiTNANOVA = aov(mean.val~season.f, data=UMR_mainstem_seasonalSiTNavg)
 summary(UMR_mainstem_SiTNANOVA)
+plot(UMR_mainstem_SiTNANOVA, 1)
+plot(UMR_mainstem_SiTNANOVA, 2)
+UMR_mainstem_SiTNAVOVA_residuals = residuals(object=UMR_mainstem_SiTNANOVA)
+shapiro.test(x=UMR_mainstem_SiTNAVOVA_residuals)
+#statistical differences in season for Si:TN
+#post-hoc pairwise comparisons
+pairwise.t.test(UMR_mainstem_seasonalSiTNavg$mean.val, UMR_mainstem_seasonalSiTNavg$season)
+
+UMR_mainstem_SiTPANOVA = aov(mean.val~season.f, data=UMR_mainstem_seasonalSiTPavg)
+summary(UMR_mainstem_SiTPANOVA)
+plot(UMR_mainstem_SiTPANOVA, 1)
+plot(UMR_mainstem_SiTPANOVA, 2)
+UMR_mainstem_SiTPAVOVA_residuals = residuals(object=UMR_mainstem_SiTPANOVA)
+shapiro.test(x=UMR_mainstem_SiTPAVOVA_residuals)
+
 ##=================
 #plot by FLDNUMs with seasons on different plots
 #use factor command to order seasons by time rather than alphabetically
