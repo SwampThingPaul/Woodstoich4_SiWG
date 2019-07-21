@@ -23,12 +23,21 @@ UMR_2010.2018$MONTH = month(UMR_2010.2018$DATE, label=T, abbr=T)
 library(hydroTSM)
 UMR_2010.2018$SEASON = time2season(UMR_2010.2018$DATE, out.fmt = "seasons", type = "default")
 
-#plot Si concentrations by month in mainstem and tribs
+#plot Si concentrations by DOY and month in mainstem and tribs
+UMR_2010.2018$DOY = yday(UMR_2010.2018$DATE)
 library(ggplot2)
+UMR_dailySi = ggplot(UMR_2010.2018, aes(x=DOY, y=SI, color=SITE_TYPE))+
+  geom_point()+
+  labs(title="Si concentrations in UMR mainstem and tributaries", 
+       y="Si conc (mg SiO2/L)")
+UMR_dailySi
+
 UMR_monthlySi = ggplot(UMR_2010.2018, aes(x=MONTH, y=SI, color=SITE_TYPE))+
   geom_boxplot()+
-  labs(title="Si concentrations in UMR mainstem and tributaries", y="Si conc (mg SiO2/L")
+  labs(title="Si concentrations in UMR mainstem and tributaries", 
+       y="Si conc (mg SiO2/L)")
 UMR_monthlySi
+ggsave(file="UMR monthly Si conc.png", width=10, height=7)
 
 #create box plots for Si concentration, Si:TN, and Si:TP by season
 UMR_2010.2018$SEASON.f = factor(UMR_2010.2018$SEASON, levels=c('summer', 'autumm', 'winter', 'spring'))
