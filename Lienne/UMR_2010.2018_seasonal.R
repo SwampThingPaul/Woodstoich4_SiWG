@@ -35,9 +35,48 @@ UMR_dailySi
 UMR_monthlySi = ggplot(UMR_2010.2018, aes(x=MONTH, y=SI, color=SITE_TYPE))+
   geom_boxplot()+
   labs(title="Si concentrations in UMR mainstem and tributaries", 
-       y="Si conc (mg SiO2/L)")
+       y="Si conc (mg Si/L)")
 UMR_monthlySi
 ggsave(file="UMR monthly Si conc.png", width=10, height=7)
+
+#calculate Si:TN and Si:TP
+UMR_2010.2018$SiTN = (UMR_2010.2018$SI/28085)/(UMR_2010.2018$TN/14006)
+UMR_2010.2018$SiTP = (UMR_2010.2018$SI/28085)/(UMR_2010.2018$TP/30973)
+
+#plot Si:TN and Si:TP by month
+UMR_monthlySiTN = ggplot(UMR_2010.2018, aes(x=MONTH, y=SiTN, color=SITE_TYPE))+
+  geom_boxplot()+
+  labs(title="Si:TN in UMR mainstem and tributaries", 
+       y="Molar Si:TN")+
+  ylim(0,10)
+UMR_monthlySiTN
+ggsave(file="UMR monthly SiTN.png", width=10, height=7)
+
+UMR_monthlySiTP = ggplot(UMR_2010.2018, aes(x=MONTH, y=SiTP, color=SITE_TYPE))+
+  geom_boxplot()+
+  labs(title="Si:TP in UMR mainstem and tributaries", 
+       y="Molar Si:TP")
+UMR_monthlySiTP
+ggsave(file="UMR monthly SiTP.png", width=10, height=7)
+
+#create new dataframe with average Si, Si:TN, Si:TP by month
+UMR_monthlyavg = aggregate(UMR_2010.2018, by=list(UMR_2010.2018$MONTH), FUN=mean)
+UMR_monthlyavg = UMR_monthlyavg[c("Group.1", "TN", "TP", "SI", "SiTN", "SiTP")]
+
+#plot average Si concentration, Si:TN, and Si:TP by month
+UMR_avgmonthlySi = ggplot(UMR_monthlyavg, aes(x=Group.1, y=SI))+
+  geom_point()+
+  ylab("Average Si concentrations (mg Si/L)")
+UMR_avgmonthlySiTN = ggplot(UMR_monthlyavg, aes(x=Group.1, y=SiTN))+
+  geom_point()+
+  ylab("Average MolarSi:TN")
+UMR_avgmonthlySiTP = ggplot(UMR_monthlyavg, aes(x=Group.1, y=SiTP))+
+  geom_point()+
+  ylab("Average MolarSi:TP")
+
+library(gridExtra)
+grid.arrange(UMR_avgmonthlySi, UMR_avgmonthlySiTN, UMR_avgmonthlySiTP)
+
 
 #create box plots for Si concentration, Si:TN, and Si:TP by season
 UMR_2010.2018$SEASON.f = factor(UMR_2010.2018$SEASON, levels=c('summer', 'autumm', 'winter', 'spring'))
