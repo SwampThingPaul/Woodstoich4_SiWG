@@ -94,6 +94,17 @@ UMR_avgtribmonthlySiTP = ggplot(UMR_tribavgs, aes(x=Group.1, y=SiTP))+
 library(gridExtra)
 grid.arrange(UMR_avgtribmonthlySi, UMR_avgtribmonthlySiTN, UMR_avgtribmonthlySiTP)
 
+UMR_avgmainmonthlySi = ggplot(UMR_mainavgs, aes(x=Group.1, y=SI))+
+  geom_point()+
+  labs(title="UMR main stem average Si concentrations", y="Si concentration (mg Si/L)")
+UMR_avgmainmonthlySiTN = ggplot(UMR_mainavgs, aes(x=Group.1, y=SiTN))+
+  geom_point()+
+  labs(title="UMR main stem average Si:TN", y="Average Molar Si:TN")
+UMR_avgmainmonthlySiTP = ggplot(UMR_mainavgs, aes(x=Group.1, y=SiTP))+
+  geom_point()+
+  labs(title="UMR main stem average Si:TP", y="Average MolarSi:TP")
+grid.arrange(UMR_avgmainmonthlySi, UMR_avgmainmonthlySiTN, UMR_avgmainmonthlySiTP)
+
 #create box plots for Si concentration, Si:TN, and Si:TP by season
 UMR_2010.2018$SEASON.f = factor(UMR_2010.2018$SEASON, levels=c('summer', 'autumm', 'winter', 'spring'))
 UMR_seasonalSi = ggplot(UMR_2010.2018, aes(x=SEASON, y=SI))+
