@@ -8,8 +8,7 @@ Silicon (Si) plays an important role in the growth of diatoms, aquatic plants, a
   Team Members: 
    - Joanna Carey (Babson College) 
    - Lienne Sethna (Indiana Univeristy)
-   - Patrick Thomas (University of Oldenburg) 
-   - [Paul Julian](https://swampthing.github.io) (University of Florida)
    - [Kathi Jo Jankowski](https://www.usgs.gov/staff-profiles/kathi-jo-jankowski?qt-staff_profile_science_products=3#qt-staff_profile_science_products) (U.S. Geological Survey)
-
+   - [Paul Julian](https://swampthing.github.io) (University of Florida)
+   - Patrick Thomas (University of Oldenburg)
 ***
