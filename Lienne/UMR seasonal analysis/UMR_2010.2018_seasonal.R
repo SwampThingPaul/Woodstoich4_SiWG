@@ -81,17 +81,22 @@ UMR_monthlySi = ggplot(UMR_monthlyavg, aes(x=MONTH, y=Si_avg, color=SITE_TYPE))+
   geom_errorbar(aes(ymin=Si_avg-Si_se, ymax=Si_avg+Si_se), width=0.1)+
   geom_line(aes(x=MONTH, y=Si_avg, group=SITE_TYPE))+
   geom_point()+
-  labs(y="Average Si concentration (mg Si/L)", x="")
+  labs(y="Average Si concentration (mg Si/L)", x="")+
+  theme(legend.position = "none")
 UMR_monthlySiTN = ggplot(UMR_monthlyavg, aes(x=MONTH, y=SiTN_avg, color=SITE_TYPE))+
   geom_errorbar(aes(ymin=SiTN_avg-SiTN_se, ymax=SiTN_avg+SiTN_se), width=0.1)+
   geom_line(aes(x=MONTH, y=SiTN_avg, group=SITE_TYPE))+
   geom_point()+
-  labs(y="Average Molar Si:TN", x="")
+  labs(y="Average Molar Si:TN", x="")+
+  theme(legend.position = "none")
 UMR_monthlySiTP = ggplot(UMR_monthlyavg, aes(x=MONTH, y=SiTP_avg, color=SITE_TYPE))+
   geom_errorbar(aes(ymin=SiTP_avg-SiTP_se, ymax=SiTP_avg+SiTN_se), width=0.1)+
   geom_line(aes(x=MONTH, y=SiTP_avg, group=SITE_TYPE))+
   geom_point()+
-  labs(y="Average Molar Si:TP", x="Month")
+  labs(y="Average Molar Si:TP", x="Month")+
+  theme(legend.position = "bottom")+
+  scale_linetype_discrete(name="Site Type")
+UMR_monthlySiTP
 library(gridExtra)
 grid.arrange(UMR_monthlySi, UMR_monthlySiTN, UMR_monthlySiTP)
 
