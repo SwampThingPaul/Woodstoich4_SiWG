@@ -49,7 +49,6 @@ UMR_trib_Sispatial = ggplot(UMR_trib_Si, aes(x=Lat, y=mean.val))+
 UMR_trib_Sispatial
 ggsave(file="UMR_trib_Sispatial.png", width=10, height=7)
 ```
-
 ```{r, echo=FALSE}
 UMR_trib_SiTNspatial = ggplot(UMR_trib_SiTN, aes(x=Lat, y=log.mean.val))+
   geom_point(size=3)+
@@ -65,4 +64,54 @@ UMR_trib_SiTPspatial = ggplot(UMR_trib_SiTP, aes(x=Lat, y=log.mean.val))+
   scale_x_reverse()
 UMR_trib_SiTPspatial
 ggsave(file="UMR_trib_SiTPspatial.png", width=10, height=7)
+```
+Plot tributary Si, Si:TN, and Si:TP by FLDNUM
+```{r, echo=FALSE}
+UMR_trib_SiLM = UMR_trib_Si$mean.val ~ UMR_trib_Si$FLDNUM
+UMR_trib_Si_FLDNUM = ggplot(UMR_trib_Si, aes(x=FLDNUM, y=mean.val))+
+  geom_point(size=3)+
+  labs(title="UMR tributaries average Si concentration and stoichiometry", y="[Si] (mg Si/L)", x="")+
+  scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6"))+
+  geom_smooth(method='lm', se=TRUE, color="black")+
+  stat_poly_eq(formula=UMR_trib_SiLM, 
+               aes(label=paste(..rr.label..)),
+               label.x=0.85,
+               size=8,
+               parse = TRUE)+
+  theme(text=element_text(size=20))+
+  theme_bw()
+UMR_trib_Si_FLDNUM
+
+UMR_trib_SiTNLM = UMR_trib_SiTN$mean.val ~ UMR_trib_SiTN$FLDNUM
+UMR_trib_SiTN_FLDNUM = ggplot(UMR_trib_SiTN, aes(x=FLDNUM, y=mean.val))+
+  geom_point(size=3)+
+  labs(y="Molar Si:TN", x="")+
+  scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6"))+
+  geom_smooth(method='lm', se=TRUE, color="black")+
+  stat_poly_eq(formula=UMR_trib_SiTNLM, 
+               aes(label=paste(..rr.label..)),
+               label.x=0.85,
+               size=8,
+               parse = TRUE)+
+  theme(text=element_text(size=50))+
+  theme_bw()
+UMR_trib_SiTN_FLDNUM
+
+UMR_trib_SiTPLM = UMR_trib_SiTP$mean.val ~ UMR_trib_SiTP$FLDNUM
+UMR_trib_SiTP_FLDNUM = ggplot(UMR_trib_SiTP, aes(x=FLDNUM, y=mean.val))+
+  geom_point(size=3)+
+  labs(y="Molar Si:TP", x="Field Number")+
+  scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6"))+
+  geom_smooth(method='lm', se=TRUE, color="black")+
+  stat_poly_eq(formula=UMR_trib_SiTPLM, 
+               aes(label=paste(..rr.label..)),
+               label.x=0.85,
+               size=8,
+               parse = TRUE)+
+  theme(text=element_text(size=30))+
+  theme_bw()
+UMR_trib_SiTP_FLDNUM
+
+library(gridExtra)
+grid.arrange(UMR_trib_Si_FLDNUM, UMR_trib_SiTN_FLDNUM, UMR_trib_SiTP_FLDNUM)
 ```
