@@ -1,4 +1,5 @@
 #use SRS summmary stats 2010-2018
+UMR_mainstem = UMR_SRS_summarystats_2010_2018
 
 #add river mile from LOCATCD
 #from Fixed summary stats, not used for SRS
