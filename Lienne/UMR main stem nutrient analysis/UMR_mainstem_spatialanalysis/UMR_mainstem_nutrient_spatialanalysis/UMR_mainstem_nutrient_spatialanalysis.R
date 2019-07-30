@@ -7,9 +7,11 @@ UMR_mainstem = UMR_SRS_summarystats_2010_2018
 #UMR_mainstem$rivermile = parse_number(UMR_mainstem$LOCATCD)
 
 #remove LOCATCDs from the Illinois river
-#UMR_mainstem = UMR_mainstem2
+UMR_mainstem2 = UMR_mainstem
 #is.na(UMR_mainstem$LOCATCD) = startsWith(UMR_mainstem$LOCATCD, "I")
 #UMR_mainstem=na.omit(UMR_mainstem)
+is.na(UMR_mainstem$FLDNUM) = UMR_mainstem$FLDNUM == 6
+UMR_mainstem=na.omit(UMR_mainstem)
 
 #get Si, Si:TN, and Si:TP parameters from SRS stats
 UMR_mainstem_Si = subset(UMR_mainstem, UMR_mainstem$parameter=="SI")
@@ -34,19 +36,20 @@ library(ggpmisc)
 SiRM.formula = UMR_mainstem_Si$mean.val ~ UMR_mainstem_Si$FLDNUM
 SiRM.lm = lm(data=UMR_mainstem_Si, mean.val~FLDNUM)
 summary(SiRM.lm)
-
 UMR_mainstem_SiRM = ggplot(UMR_mainstem_Si, aes(x=FLDNUM, y=mean.val))+
   geom_point(size=3)+
   geom_smooth(method='lm', se=TRUE, color="black")+
   stat_poly_eq(formula=SiRM.formula, 
                aes(label=paste(..rr.label..)),
                label.x=0.85,
-               size=8,
+               size=10,
                parse = TRUE) +
-  labs(y="[Si] (mg Si/L)", x="")+
+  labs(title="UMR Mainstem", y="[Si] (mg Si/L)", x="")+
   scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6"))+
   theme_bw()+
-  theme(text=element_text(size=20))
+  theme(text=element_text(size=30),
+        axis.text.x=element_text(size=rel(1)),
+        axis.text.y=element_text(size=rel(1)))
 UMR_mainstem_SiRM
 #ggsave(file="UMR main stem Si by river mile.png", width=10, height=7)
 #=============================================================================
@@ -59,21 +62,21 @@ UMR_mainstem_SiRM
 SiTNRM.formula = UMR_mainstem_SiTN$mean.val ~ UMR_mainstem_SiTN$FLDNUM
 SiTNRM.lm = lm(data=UMR_mainstem_SiTN, mean.val~FLDNUM)
 summary(SiTNRM.lm)
-
 UMR_mainstem_SiTNRM = ggplot(UMR_mainstem_SiTN, aes(x=FLDNUM, y=mean.val))+
   geom_point(size=3)+
   geom_smooth(method='lm', se=TRUE, color="black")+
   stat_poly_eq(formula=SiTNRM.formula, 
                aes(label=paste(..rr.label..)),
                label.x=0.85,
-               size=8,
+               size=10,
                parse = TRUE) +
-  scale_x_reverse()+
   geom_hline(yintercept=1, linetype="dashed")+
   labs(y="Molar Si:TN", x="")+
   scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6"))+
   theme_bw()+
-  theme(text=element_text(size=20))
+  theme(text=element_text(size=30),
+        axis.text.x=element_text(size=rel(1)),
+        axis.text.y=element_text(size=rel(1)))
 UMR_mainstem_SiTNRM
 #ggsave(file="UMR main stem SiTN by river mile.png", width=10, height=7)
 #==============================================================================
@@ -86,21 +89,21 @@ UMR_mainstem_SiTNRM
 SiTPRM.formula = UMR_mainstem_SiTP$mean.val ~ UMR_mainstem_SiTP$FLDNUM
 SiTPRM.lm = lm(data=UMR_mainstem_SiTP, mean.val~FLDNUM)
 summary(SiTPRM.lm)
-
 UMR_mainstem_SiTPRM = ggplot(UMR_mainstem_SiTP, aes(x=FLDNUM, y=mean.val))+
   geom_point(size=3)+
   geom_smooth(method='lm', se=TRUE, color="black")+
   stat_poly_eq(formula=SiTPRM.formula, 
                aes(label=paste(..rr.label..)),
                label.x=0.85,
-               size=8,
+               size=10,
                parse = TRUE) +
-  scale_x_reverse()+
-  geom_hline(yintercept=16, linetype="dashed")+
+    geom_hline(yintercept=16, linetype="dashed")+
   labs(y="Molar Si:TP", x="Field Number")+
   scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6"))+
   theme_bw()+
-  theme(text=element_text(size=20))
+  theme(text=element_text(size=30),
+        axis.text.x=element_text(size=rel(1)),
+        axis.text.y=element_text(size=rel(1)))
 UMR_mainstem_SiTPRM
 #ggsave(file="UMR main stem SiTP by river mile.png", width=10, height=7)
 
