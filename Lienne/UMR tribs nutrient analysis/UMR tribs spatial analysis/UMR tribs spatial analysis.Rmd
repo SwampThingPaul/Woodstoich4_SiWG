@@ -67,6 +67,8 @@ ggsave(file="UMR_trib_SiTPspatial.png", width=10, height=7)
 ```
 Plot tributary Si, Si:TN, and Si:TP by FLDNUM
 ```{r, echo=FALSE}
+library(ggplot2)
+library(ggpmisc)
 UMR_trib_SiLM = UMR_trib_Si$mean.val ~ UMR_trib_Si$FLDNUM
 UMR_trib_Si_FLDNUM = ggplot(UMR_trib_Si, aes(x=FLDNUM, y=mean.val))+
   geom_point(size=3)+
@@ -76,9 +78,11 @@ UMR_trib_Si_FLDNUM = ggplot(UMR_trib_Si, aes(x=FLDNUM, y=mean.val))+
   stat_poly_eq(formula=UMR_trib_SiLM, 
                aes(label=paste(..rr.label..)),
                label.x=0.85,
-               size=8,
+               size=10,
                parse = TRUE)+
-  theme(text=element_text(size=20))+
+  theme(text=element_text(size=30),
+        axis.text.x=element_text(size=rel(1.5)),
+        axis.text.y=element_text(size=rel(1.5)))+
   theme_bw()
 UMR_trib_Si_FLDNUM
 
