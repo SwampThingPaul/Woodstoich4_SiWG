@@ -45,7 +45,7 @@ UMR_mainstem_SiRM = ggplot(UMR_mainstem_Si, aes(x=FLDNUM, y=mean.val))+
                size=10,
                parse = TRUE) +
   labs(title="UMR Mainstem", y="[Si] (mg Si/L)", x="")+
-  scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6"))+
+  scale_x_discrete(limits=c("1", "2", "3", "4", "5"))+
   theme_bw()+
   theme(text=element_text(size=30),
         axis.text.x=element_text(size=rel(1)),
