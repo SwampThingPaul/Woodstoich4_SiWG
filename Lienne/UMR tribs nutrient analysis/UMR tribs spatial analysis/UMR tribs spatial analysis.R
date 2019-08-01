@@ -1,7 +1,9 @@
 #Plot tributary Si, Si:TN, and Si:TP by FLDNUM
 library(ggplot2)
 library(ggpmisc)
-UMR_trib_SiLM = UMR_trib_Si$mean.val ~ UMR_trib_Si$FLDNUM
+UMR_tribSi_formula = UMR_trib_Si$mean.val ~ UMR_trib_Si$FLDNUM
+UMR_trib_SiLM = lm(UMR_trib_Si$mean.val ~ UMR_trib_Si$FLDNUM)
+summary(UMR_trib_SiLM)
 UMR_trib_Si_FLDNUM = ggplot(UMR_trib_Si, aes(x=FLDNUM, y=mean.val))+
   geom_point(size=3)+
   labs(title="UMR Tributaries",y="[Si] (mg Si/L)", x="")+
@@ -18,7 +20,9 @@ UMR_trib_Si_FLDNUM = ggplot(UMR_trib_Si, aes(x=FLDNUM, y=mean.val))+
         axis.text.y=element_text(size=rel(1)))
 UMR_trib_Si_FLDNUM
 
-UMR_trib_SiTNLM = UMR_trib_SiTN$mean.val ~ UMR_trib_SiTN$FLDNUM
+UMR_tribSiTN_formula = UMR_trib_SiTN$mean.val ~ UMR_trib_SiTN$FLDNUM
+UMR_trib_SiTNLM = lm(UMR_trib_SiTN$mean.val ~ UMR_trib_SiTN$FLDNUM)
+summary(UMR_trib_SiTNLM)
 UMR_trib_SiTN_FLDNUM = ggplot(UMR_trib_SiTN, aes(x=FLDNUM, y=mean.val))+
   geom_point(size=3)+
   labs(y="Molar Si:TN", x="")+
@@ -36,7 +40,9 @@ UMR_trib_SiTN_FLDNUM = ggplot(UMR_trib_SiTN, aes(x=FLDNUM, y=mean.val))+
         axis.text.y=element_text(size=rel(1)))
 UMR_trib_SiTN_FLDNUM
 
-UMR_trib_SiTPLM = UMR_trib_SiTP$mean.val ~ UMR_trib_SiTP$FLDNUM
+UMR_trib_SiTP_formula = UMR_trib_SiTP$mean.val ~ UMR_trib_SiTP$FLDNUM
+UMR_trib_SiTPLM = lm(UMR_trib_SiTP$mean.val ~ UMR_trib_SiTP$FLDNUM)
+summary(UMR_trib_SiTPLM)
 UMR_trib_SiTP_FLDNUM = ggplot(UMR_trib_SiTP, aes(x=FLDNUM, y=mean.val))+
   geom_point(size=3)+
   labs(y="Molar Si:TP", x="Field Number")+
