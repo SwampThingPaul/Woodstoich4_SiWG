@@ -17,6 +17,8 @@ UMR_mainstem=na.omit(UMR_mainstem)
 UMR_mainstem_Si = subset(UMR_mainstem, UMR_mainstem$parameter=="SI")
 UMR_mainstem_SiTN = subset(UMR_mainstem, UMR_mainstem$parameter=="SiTN")
 UMR_mainstem_SiTP = subset(UMR_mainstem, UMR_mainstem$parameter=="SiTP")
+UMR_mainstem_TN = subset(UMR_mainstem, UMR_mainstem$parameter=="TN")
+UMR_mainstem_TP = subset(UMR_mainstem, UMR_mainstem$parameter=="TP")
 
 #log transform Si:TN and Si:TP
 #don't use for spatial trends
@@ -106,6 +108,45 @@ UMR_mainstem_SiTPRM = ggplot(UMR_mainstem_SiTP, aes(x=FLDNUM, y=mean.val))+
         axis.text.y=element_text(size=rel(1)))
 UMR_mainstem_SiTPRM
 #ggsave(file="UMR main stem SiTP by river mile.png", width=10, height=7)
+
+TNRM.formula = UMR_mainstem_TN$mean.val ~ UMR_mainstem_TN$FLDNUM
+TNRM.lm = lm(data=UMR_mainstem_TN, mean.val~FLDNUM)
+summary(TNRM.lm)
+UMR_mainstem_TNRM = ggplot(UMR_mainstem_TN, aes(x=FLDNUM, y=mean.val))+
+  geom_point(size=3)+
+  geom_smooth(method='lm', se=TRUE, color="black")+
+  stat_poly_eq(formula=TNRM.formula, 
+               aes(label=paste(..rr.label..)),
+               label.x=0.85,
+               size=10,
+               parse = TRUE) +
+  geom_hline(yintercept=16, linetype="dashed")+
+  labs(y="TN concentration (mg N/L)", x="Field Number")+
+  scale_x_discrete(limits=c("1", "2", "3", "4", "5"))+
+  theme_bw()+
+  theme(text=element_text(size=30),
+        axis.text.x=element_text(size=rel(1)),
+        axis.text.y=element_text(size=rel(1)))
+UMR_mainstem_TNRM
+
+TPRM.formula = UMR_mainstem_TP$mean.val ~ UMR_mainstem_TP$FLDNUM
+TPRM.lm = lm(data=UMR_mainstem_TP, mean.val~FLDNUM)
+summary(TPRM.lm)
+UMR_mainstem_TPRM = ggplot(UMR_mainstem_TP, aes(x=FLDNUM, y=mean.val))+
+  geom_point(size=3)+
+  geom_smooth(method='lm', se=TRUE, color="black")+
+  stat_poly_eq(formula=TPRM.formula, 
+               aes(label=paste(..rr.label..)),
+               label.x=0.85,
+               size=10,
+               parse = TRUE) +
+  labs(y="TP concentration (mg P/L)", x="Field Number")+
+  scale_x_discrete(limits=c("1", "2", "3", "4", "5"))+
+  theme_bw()+
+  theme(text=element_text(size=30),
+        axis.text.x=element_text(size=rel(1)),
+        axis.text.y=element_text(size=rel(1)))
+UMR_mainstem_TPRM
 
 library(gridExtra)
 grid.arrange(UMR_mainstem_SiRM, UMR_mainstem_SiTNRM, UMR_mainstem_SiTPRM)
