@@ -15,15 +15,26 @@ UMR_mainstem=na.omit(UMR_mainstem)
 
 #get Si, Si:TN, and Si:TP parameters from SRS stats
 UMR_mainstem_Si = subset(UMR_mainstem, UMR_mainstem$parameter=="SI")
+UMR_mainstem_Si$MSi = UMR_mainstem_Si$mean.val/28.086
 UMR_mainstem_SiTN = subset(UMR_mainstem, UMR_mainstem$parameter=="SiTN")
 UMR_mainstem_SiTP = subset(UMR_mainstem, UMR_mainstem$parameter=="SiTP")
 UMR_mainstem_TN = subset(UMR_mainstem, UMR_mainstem$parameter=="TN")
+UMR_mainstem_TN$MTN = UMR_mainstem_TN$mean.val/14.007
 UMR_mainstem_TP = subset(UMR_mainstem, UMR_mainstem$parameter=="TP")
+UMR_mainstem_TP$MTP = UMR_mainstem_TP$mean.val/30.974
 
 #log transform Si:TN and Si:TP
 #don't use for spatial trends
 UMR_mainstem_SiTN$log.mean.val = log10(UMR_mainstem_SiTN$mean.val)
 UMR_mainstem_SiTP$log.mean.val = log10(UMR_mainstem_SiTP$mean.val)
+
+#get average Si, TN, and TP concentrations
+library(psych)
+avgSi = describe(UMR_mainstem_Si$MSi)
+avgSiTN = describe(UMR_mainstem_SiTN$mean.val)
+avgSiTP = describe(UMR_mainstem_SiTP$mean.val)
+avgTN = describe(UMR_mainstem_TN$MTN)
+avgTP = describe(UMR_mainstem_TP$MTP)
 
 #plot Si, Si:TN, Si:TP by latitude and river mile
 library(ggplot2)
@@ -36,9 +47,9 @@ library(ggpmisc)
 #UMR_mainstem_Sispatial
 
 SiRM.formula = UMR_mainstem_Si$mean.val ~ UMR_mainstem_Si$FLDNUM
-SiRM.lm = lm(data=UMR_mainstem_Si, mean.val~FLDNUM)
+SiRM.lm = lm(data=UMR_mainstem_Si, MSi~FLDNUM)
 summary(SiRM.lm)
-UMR_mainstem_SiRM = ggplot(UMR_mainstem_Si, aes(x=FLDNUM, y=mean.val))+
+UMR_mainstem_SiRM = ggplot(UMR_mainstem_Si, aes(x=FLDNUM, y=MSi))+
   geom_point(size=3)+
   geom_smooth(method='lm', se=TRUE, color="black")+
   stat_poly_eq(formula=SiRM.formula, 
@@ -46,7 +57,7 @@ UMR_mainstem_SiRM = ggplot(UMR_mainstem_Si, aes(x=FLDNUM, y=mean.val))+
                label.x=0.85,
                size=10,
                parse = TRUE) +
-  labs(title="UMR Mainstem", y="[Si] (mg Si/L)", x="")+
+  labs(title="UMR Mainstem", y=expression("[Si]"~(mu~"M")), x="")+
   scale_x_discrete(limits=c("1", "2", "3", "4", "5"))+
   theme_bw()+
   theme(text=element_text(size=30),
@@ -100,7 +111,7 @@ UMR_mainstem_SiTPRM = ggplot(UMR_mainstem_SiTP, aes(x=FLDNUM, y=mean.val))+
                size=10,
                parse = TRUE) +
     geom_hline(yintercept=16, linetype="dashed")+
-  labs(y="Molar Si:TP", x="Field Number")+
+  labs(y="Molar Si:TP", x="Reach Number")+
   scale_x_discrete(limits=c("1", "2", "3", "4", "5", "6"))+
   theme_bw()+
   theme(text=element_text(size=30),
@@ -150,3 +161,5 @@ UMR_mainstem_TPRM
 
 library(gridExtra)
 grid.arrange(UMR_mainstem_SiRM, UMR_mainstem_SiTNRM, UMR_mainstem_SiTPRM)
+
+library(cowplot)
