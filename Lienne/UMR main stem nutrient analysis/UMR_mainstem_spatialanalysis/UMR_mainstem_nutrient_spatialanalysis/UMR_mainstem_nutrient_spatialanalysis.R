@@ -163,3 +163,15 @@ library(gridExtra)
 grid.arrange(UMR_mainstem_SiRM, UMR_mainstem_SiTNRM, UMR_mainstem_SiTPRM)
 
 library(cowplot)
+
+#use plot function from base library
+library(base)
+par(mfrow=c(3,1), oma=c(5,5,5,5), mar=c(1,3,0,0))
+plot(UMR_mainstem_Si$FLDNUM, UMR_mainstem_Si$MSi,
+     xlab="", ylab=expression("Si concentration"~(mu~"M")),
+     xaxt='n')
+plot(UMR_mainstem_SiTN$FLDNUM, UMR_mainstem_SiTN$mean.val,
+     xlab="", ylab="Molar Si:TN",
+     xaxt='n')
+plot(UMR_mainstem_SiTP$FLDNUM, UMR_mainstem_SiTP$mean.val,
+     xlab="Field Number", ylab="Molar Si:TP")
