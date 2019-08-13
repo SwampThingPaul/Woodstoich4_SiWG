@@ -40,7 +40,7 @@ UMR_monthlySi
 ggsave(file="UMR monthly Si conc.png", width=10, height=7)
 
 #calculate Si:TN and Si:TP
-UMR_2010.2018$Msi = UMR_2010.2018$SI/28.085
+UMR_2010.2018$Msi = (UMR_2010.2018$SI/28.085)*1000
 UMR_2010.2018$SiTN = (UMR_2010.2018$SI/28085)/(UMR_2010.2018$TN/14006)
 UMR_2010.2018$SiTP = (UMR_2010.2018$SI/28085)/(UMR_2010.2018$TP/30973)
 
@@ -75,6 +75,8 @@ UMR_monthlyavg = ddply(UMR_2010.2018, c("MONTH", "SITE_TYPE"), summarise,
                        SiTP_avg = mean(SiTP),
                        SiTP_SD = sd(SiTP),
                        SiTP_se = SiTP_SD/sqrt(SiTP_N))
+
+write.csv(UMR_monthlyavg, file="UMR_monthlyavgs.csv")
 
 #plot main stem and tributary averages
 library(ggplot2)
