@@ -2,19 +2,22 @@
 UMR_MainStem_SRSdataset_1993_2018$DATE = as.Date(UMR_MainStem_SRSdataset_1993_2018$DATE, "%m/%d/%Y")
 UMR_mainstem_SRS_2010.2018 = subset(UMR_MainStem_SRSdataset_1993_2018, 
                                     UMR_MainStem_SRSdataset_1993_2018$year >= 2010)
-UMR_mainstem_2010.2018 = UMR_mainstem_SRS_2010.2018[c("DATE", "year", "TN", "TP", "SI")]
-names(UMR_mainstem_2010.2018)[2]="YEAR"
+UMR_mainstem_2010.2018 = UMR_mainstem_SRS_2010.2018[c("DATE", "FLDNUM", "year", "TN", "TP", "SI")]
+names(UMR_mainstem_2010.2018)[3]="YEAR"
 UMR_mainstem_2010.2018$SITE_TYPE = "main"
 
 #Get trib data from all sites between 2010-2017
 UMRTribs_Filtered_1_26_18$DATE = as.Date(UMRTribs_Filtered_1_26_18$DATE, "%m/%d/%Y")
 UMR_tribs_2010.2017 = subset(UMRTribs_Filtered_1_26_18,
                              UMRTribs_Filtered_1_26_18$YEAR >= 2010)
-UMR_tribs_2010.2017 = UMR_tribs_2010.2017[c("DATE", "YEAR", "TN", "TP", "SI")]
+UMR_tribs_2010.2017 = UMR_tribs_2010.2017[c("DATE", "FLDNUM", "YEAR", "TN", "TP", "SI")]
 UMR_tribs_2010.2017$SITE_TYPE = "trib"
 
 #merge all data together
 UMR_2010.2018 = merge(UMR_tribs_2010.2017, UMR_mainstem_2010.2018, all=TRUE)
+UMR_2010.2018$TN = as.numeric(UMR_2010.2018$TN)
+UMR_2010.2018$TP = as.numeric(UMR_2010.2018$TP)
+UMR_2010.2018$SI = as.numeric(UMR_2010.2018$SI)
 UMR_2010.2018 = na.omit(UMR_2010.2018)
 
 #add month and season to merged data
@@ -40,9 +43,15 @@ UMR_monthlySi
 ggsave(file="UMR monthly Si conc.png", width=10, height=7)
 
 #calculate Si:TN and Si:TP
-UMR_2010.2018$Msi = (UMR_2010.2018$SI/28.085)*1000
+UMR_2010.2018$MSi = (UMR_2010.2018$SI/28.085)*1000
 UMR_2010.2018$SiTN = (UMR_2010.2018$SI/28085)/(UMR_2010.2018$TN/14006)
 UMR_2010.2018$SiTP = (UMR_2010.2018$SI/28085)/(UMR_2010.2018$TP/30973)
+
+#insert median river mile based on Field Number
+UMR_2010.2018$medianRM = ifelse(UMR_2010.2018$FLDNUM==1, 1247.5,
+                                ifelse(UMR_2010.2018$FLDNUM==2, 1112,
+                                       ifelse(UMR_2010.2018$FLDNUM==3, 868.5,
+                                              ifelse(UMR_2010.2018$FLDNUM==4, 358, 88))))
 
 #plot Si:TN and Si:TP by month
 UMR_monthlySiTN = ggplot(UMR_2010.2018, aes(x=MONTH, y=SiTN, color=SITE_TYPE))+
@@ -63,9 +72,9 @@ ggsave(file="UMR monthly SiTP.png", width=10, height=7)
 #calculate summary stats for Si, Si:TN, Si:TP by month and site type
 library(plyr)
 UMR_monthlyavg = ddply(UMR_2010.2018, c("MONTH", "SITE_TYPE"), summarise,
-                       Si_N = length(Msi),
-                       Si_avg = mean(Msi),
-                       Si_SD = sd(Msi),
+                       Si_N = length(MSi),
+                       Si_avg = mean(MSi),
+                       Si_SD = sd(MSi),
                        Si_se = Si_SD/sqrt(Si_N),
                        SiTN_N = length(SiTN),
                        SiTN_avg = mean(SiTN),
