@@ -44,7 +44,7 @@ plot(UMR_main_Si$MSi~UMR_main_Si$medianRM,
      yaxt='n', ylim=c(80,240), 
      pch=16,
      ylab="", xlab="")
-axis(2,at=c(100,140,180,220),labels=c(100,140,180,220),lty=1,col="black", las=2, cex.axis=1.5)
+axis(2,at=c(100,140,180,220),labels=c(100,140,180,220),lty=1,col="black", las=2, cex.axis=2)
 mtext(side=2,line=4.2, cex=1.5,"Dissolved Si (\U03BCM)")
 UMR_main_Silm = lm(MSi~medianRM,UMR_main_Si)
 Si_mod = summary(UMR_main_Silm)
@@ -58,7 +58,7 @@ text(x=250, y=200, cex=2, labels = Silabel)
 
 plot(UMR_main_TN$MTN~UMR_main_TN$medianRM,
      xaxt='n', xlim=c(1300,80),
-     cex.axis=1.5, las=2,
+     cex.axis=2, las=2,
      pch=16,
      ylab="", xlab="")
 mtext(side=2,line=4.2, cex=1.5 ,"Total N (\U03BCM)")
@@ -74,7 +74,7 @@ text(x=1200, y=250, cex=2, labels = TNlabel)
 
 plot(UMR_main_TP$MTP~UMR_main_TP$medianRM,
      xaxt='n', xlim=c(1300,80),
-     cex.axis=1.5, las=2,
+     cex.axis=2, las=2,
      pch=16,
      ylab="", xlab="")
 mtext(side=2,line=4.2, cex=1.5, "Total P (\U03BCM)")
@@ -90,9 +90,10 @@ text(x=1200, y=10, cex=2, labels = TPlabel)
 
 plot(UMR_main_SiTN$mean.val~UMR_main_SiTN$medianRM,
      xaxt='n', xlim=c(1300,80),
-     cex.axis=1.5, las=2,
-     ylab="",
+     yaxt='n', ylim=c(0.4,2.0),
+     ylab="", xlab="",
      pch=16)
+axis(2,at=c(0.6,1.0,1.4,1.8),labels=c(0.6,1.0,1.4,1.8),lty=1,col="black", las=2, cex.axis=2)
 mtext(side=2,line=4.2, cex=1.5, "Molar Si:TN")
 UMR_main_SiTNlm = lm(mean.val~medianRM,UMR_main_SiTN)
 SiTN_mod=summary(UMR_main_SiTNlm)
@@ -107,7 +108,7 @@ text(x=250, y=1.6, cex=2, labels = SiTNlabel)
 
 plot(UMR_main_SiTP$mean.val~UMR_main_SiTP$medianRM,
      xlim=c(1300,80),
-     cex.axis=1.5, las=1,
+     cex.axis=2, las=1,
      ylab="",
      pch=16)
 mtext(side=2,line=4.2, cex=1.5, "Molar Si:TP")
@@ -123,7 +124,7 @@ SiTP.r2 = SiTP_mod$r.squared
 SiTPlabel = bquote(italic(R)^2 == .(format(SiTP.r2, digits = 3)))
 text(x=250, y=70, cex=2, labels = SiTPlabel)
 
-mtext("Mainstem",3,1,cex=1.5,outer=T)
+mtext("Mainstem",3,1,cex=2,outer=T)
 
 #plot tributary spatial
 plot(UMR_trib_Si$MSi~UMR_trib_Si$medianRM,
@@ -131,7 +132,7 @@ plot(UMR_trib_Si$MSi~UMR_trib_Si$medianRM,
      yaxt='n',
      pch=16,
      ylab="", xlab="")
-axis(2,at=c(100,140,180,220),labels=c(100,140,180,220),lty=1,col="black", las=2, cex.axis=1.5)
+axis(2,at=c(100,140,180,220),labels=c(100,140,180,220),lty=1,col="black", las=2, cex.axis=2)
 mtext(side=2,line=4.2, cex=1.5,"Dissolved Si (\U03BCM)")
 UMR_trib_Silm = lm(MSi~medianRM,UMR_trib_Si)
 Si_tribmod = summary(UMR_trib_Silm)
@@ -145,9 +146,10 @@ text(x=250, y=200, cex=2, labels = Sitrib.label)
 
 plot(UMR_trib_TN$MTN~UMR_trib_TN$medianRM,
      xaxt='n', xlim=c(1300,80),
-     cex.axis=1.5, las=2,
+     yaxt='n', ylim=c(50,750),
      pch=16,
      ylab="", xlab="")
+axis(2,at=c(100,300,500,700),labels=c(100,300,500,700),lty=1,col="black", las=2, cex.axis=2)
 mtext(side=2,line=4.2, cex=1.5 ,"Total N (\U03BCM)")
 UMR_trib_TNlm = lm(MTN~medianRM,UMR_trib_TN)
 TN_tribmod = summary(UMR_trib_TNlm)
@@ -163,9 +165,10 @@ text(x=1200, y=500, cex=2, labels = TNtrib.label)
 
 plot(UMR_trib_TP$MTP~UMR_trib_TP$medianRM,
      xaxt='n', xlim=c(1300,80),
-     cex.axis=1.5, las=2,
+     yaxt='n', ylim=c(2,25),
      pch=16,
      ylab="", xlab="")
+axis(2,at=c(5,10,15,20),labels=c(5,10,15,20),lty=1,col="black", las=2, cex.axis=2)
 mtext(side=2,line=4.2, cex=1.5, "Total P (\U03BCM)")
 UMR_trib_TPlm = lm(MTP~medianRM,UMR_trib_TP)
 TP_tribmod = summary(UMR_trib_TPlm)
@@ -179,9 +182,10 @@ text(x=1200, y=15, cex=2, labels = TPtrib.label)
 
 plot(UMR_trib_SiTN$mean.val~UMR_trib_SiTN$medianRM,
      xaxt='n', xlim=c(1300,80),
-     cex.axis=1.5, las=2,
+     yaxt='n', ylim=c(0,3.5),
      ylab="",
      pch=16)
+axis(2,at=c(0.5,1.5,2.5,3.5),labels=c(0.5,1.5,2.5,3.5),lty=1,col="black", las=2, cex.axis=2)
 mtext(side=2,line=4.2, cex=1.5, "Molar Si:TN")
 UMR_trib_SiTNlm = lm(mean.val~medianRM,UMR_trib_SiTN)
 SiTN_tribmod=summary(UMR_trib_SiTNlm)
@@ -198,7 +202,7 @@ text(x=250, y=2, cex=2, labels = SiTNtrib.label)
 
 plot(UMR_trib_SiTP$mean.val~UMR_trib_SiTP$medianRM,
      xlim=c(1300,80),
-     cex.axis=1.5, las=1,
+     cex.axis=2, las=1,
      ylab="",
      pch=16)
 mtext(side=2,line=4.2, cex=1.5, "Molar Si:TP")
@@ -214,4 +218,4 @@ SiTP.tribr2 = SiTP_tribmod$r.squared
 SiTPtrib.label = bquote(italic(R)^2 == .(format(SiTP.tribr2, digits = 3)))
 text(x=250, y=90, cex=2, labels = SiTPtrib.label)
 
-mtext("Tributaries",3,1,cex=1.5,outer=T)
+mtext("Tributaries",3,1,cex=2,outer=T)
